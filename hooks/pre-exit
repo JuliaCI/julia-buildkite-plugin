@@ -1,0 +1,6 @@
+#!/bin/bash
+set -euo pipefail
+
+cd .julia
+shopt -s extglob
+rm -rf -- !(artifacts registries packages compiled datadeps)

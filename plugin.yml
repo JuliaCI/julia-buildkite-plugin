@@ -1,0 +1,9 @@
+name: Julia
+description: Use Julia in your pipeline.
+author: https://github.com/maleadt
+requirements: []
+configuration:
+  properties:
+    version:
+      type: string
+  additionalProperties: false

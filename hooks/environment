@@ -1,0 +1,55 @@
+#!/bin/bash
+set -euov pipefail
+
+version="$BUILDKITE_PLUGIN_JULIA_VERSION"
+
+if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+    os="linux"
+    machine=$(uname -m)
+    case "$machine" in
+      "x86_64")
+        larch="x64"
+        rarch="x86_64"
+        nightly_rarch="64"
+        ;;
+      "aarch64")
+        larch="aarch64"
+        rarch="aarch64"
+        nightly_rarch="aarch64"
+        ;;
+      *)
+        buildkite-agent annotate --style error "Unhandled machine $machine"
+        exit 1
+        ;;
+    esac
+else
+    buildkite-agent annotate --style error "Unhandled OS $OSTYPE"
+    exit 1
+fi
+
+if [[ "$version" == "nightly" ]]; then
+    filename="julia-latest-$os$nightly_rarch.tar.gz"
+    url="https://julialangnightlies-s3.julialang.org/bin/$os/$larch/$filename"
+else
+    filename="julia-$version-latest-$os-$rarch.tar.gz"
+    url="https://julialang-s3.julialang.org/bin/$os/$larch/$version/$filename"
+fi
+
+echo "--- :julia: Downloading Julia $version from $url"
+
+downloads=${XDG_DOWNLOAD_DIR:-$HOME/Downloads}
+mkdir -p $downloads
+wget -nv -NP $downloads "$url"
+
+dest=$HOME/.local/opt/julia-$version
+mkdir -p $dest
+tar -xvf $downloads/$filename --strip-components=1 -C $dest
+
+bindir=$HOME/.local/bin
+mkdir -p $bindir
+julia=$bindir/julia
+ln -sf $dest/bin/julia $julia
+
+$julia -e 'using InteractiveUtils; versioninfo()' | buildkite-agent annotate --style success
+
+export julia
