@@ -35,7 +35,7 @@ else
     url="https://julialang-s3.julialang.org/bin/$os/$larch/$version/$filename"
 fi
 
-echo "--- :julia: Downloading Julia $version from $url"
+echo "--- :julia: Downloading Julia $version"
 
 downloads=${XDG_DOWNLOAD_DIR:-$HOME/Downloads}
 mkdir -p $downloads
