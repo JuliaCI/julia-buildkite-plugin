@@ -43,13 +43,19 @@ curl -L -C - -o $downloads/$filename "$url"
 
 dest=$HOME/.local/opt/julia-$version
 mkdir -p $dest
-tar -xvf $downloads/$filename --strip-components=1 -C $dest
+tar -xf $downloads/$filename --strip-components=1 -C $dest
 
 bindir=$HOME/.local/bin
 mkdir -p $bindir
 julia=$bindir/julia
 ln -sf $dest/bin/julia $julia
 
-$julia -e 'using InteractiveUtils; versioninfo()' | buildkite-agent annotate --style success
+buildkite-agent annotate --style success <<EOD
+Installed Julia $version:
+
+\`\`\`
+$($julia -e 'using InteractiveUtils; versioninfo()')
+\`\`\`
+EOD
 
 export julia
