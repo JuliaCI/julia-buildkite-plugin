@@ -50,12 +50,11 @@ mkdir -p $bindir
 julia=$bindir/julia
 ln -sf $dest/bin/julia $julia
 
+export PATH=$bindir:$PATH
 buildkite-agent annotate --style success <<EOD
 Installed Julia $version:
 
 \`\`\`
-$($julia -e 'using InteractiveUtils; versioninfo()')
+$(julia -e 'using InteractiveUtils; versioninfo()')
 \`\`\`
 EOD
-
-export PATH=$bindir:$PATH
