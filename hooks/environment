@@ -50,7 +50,7 @@ mkdir -p $bindir
 julia=$bindir/julia
 ln -sf $dest/bin/julia $julia
 
-buildkite-agent annotate --style success <<EOD
+buildkite-agent annotate --style success --context julia <<EOD
 Installed Julia $version:
 
 \`\`\`
