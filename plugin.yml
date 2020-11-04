@@ -1,5 +1,5 @@
 name: Julia
-description: Use Julia in your pipeline.
+description: Set-up Julia for use in your pipeline.
 author: https://github.com/maleadt
 requirements: []
 configuration:
