@@ -1,5 +1,5 @@
 #!/bin/bash
-set -euov pipefail
+set -euo pipefail
 
 version="$BUILDKITE_PLUGIN_JULIA_VERSION"
 
