@@ -39,7 +39,7 @@ echo "--- :julia: Downloading Julia $version"
 
 downloads=${XDG_DOWNLOAD_DIR:-$HOME/Downloads}
 mkdir -p $downloads
-curl -L -C - -o $downloads/$filename "$url"
+wget -nv -NP $downloads "$url"
 
 dest=$HOME/.local/opt/julia-$version
 mkdir -p $dest

@@ -1,7 +1,7 @@
 name: Julia
 description: Set-up Julia for use in your pipeline.
 author: https://github.com/maleadt
-requirements: [curl]
+requirements: [wget]
 configuration:
   properties:
     version:
