@@ -1,8 +1,0 @@
-#!/bin/bash
-set -euo pipefail
-shopt -s extglob
-
-if [[ -d .julia ]]; then
-    cd .julia
-    rm -rf -- !(artifacts registries packages compiled datadeps)
-fi
