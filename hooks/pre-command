@@ -1,13 +1,14 @@
 #!/bin/bash
-set -exuo pipefail
+set -euo pipefail
 shopt -s extglob
 
 
 ## make sure we start with a clean depot
 
 if [[ -d $HOME/.julia ]]; then
-    cd $HOME/.julia
+    pushd $HOME/.julia
     rm -rf -- !(artifacts registries packages compiled datadeps)
+    popd
 fi
 
 
