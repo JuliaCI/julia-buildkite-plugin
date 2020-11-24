@@ -65,3 +65,25 @@ ln -sf $dest/bin/julia $julia
 
 export PATH=$bindir:$PATH
 julia -e 'using InteractiveUtils; versioninfo()'
+
+
+## update the registry
+
+# Occasionally, there are rather large delays (> a few hours) between the time a package is
+# registered in General and propagated to pkg.julialang.org. We can avoid this by manually
+# updating the registry, not using the Julia package servers while doing so:
+# - https://github.com/JuliaLang/Pkg.jl/issues/2011
+# - https://github.com/JuliaRegistries/General/issues/16777
+# - https://github.com/JuliaPackaging/PkgServer.jl/issues/60
+JULIA_PKG_SERVER="" \
+julia -e '
+  using Pkg
+  if VERSION >= v"1.1-"
+    if !isdir(joinpath(DEPOT_PATH[1], "registries", "General"))
+      Pkg.Registry.add("General")
+    else
+      Pkg.Registry.update()
+    end
+  else
+    Pkg.API.update_registry(Pkg.Types.Context())
+  end'
