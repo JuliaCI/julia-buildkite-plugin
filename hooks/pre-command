@@ -44,18 +44,23 @@ fi
 if [[ "$version" == "nightly" ]]; then
     filename="julia-latest-$os$nightly_rarch.tar.gz"
     url="https://julialangnightlies-s3.julialang.org/bin/$os/$larch/$filename"
+elif [[ "$version" =~ ^(.+)-nightly$ ]]; then
+    release=${BASH_REMATCH[1]}
+    filename="julia-latest-$os$nightly_rarch.tar.gz"
+    url="https://julialangnightlies-s3.julialang.org/bin/$os/$larch/$release/$filename"
 else
     filename="julia-$version-latest-$os-$rarch.tar.gz"
     url="https://julialang-s3.julialang.org/bin/$os/$larch/$version/$filename"
 fi
 
+echo "Source URL: $url"
 downloads=${XDG_DOWNLOAD_DIR:-$HOME/Downloads}
-mkdir -p $downloads
-wget -nv -NP $downloads "$url"
+mkdir -p $downloads/$release
+wget -nv -NP $downloads/$release "$url"
 
 dest=$HOME/.local/opt/julia-$version
 mkdir -p $dest
-tar -xf $downloads/$filename --strip-components=1 -C $dest
+tar -xf $downloads/$release/$filename --strip-components=1 -C $dest
 
 bindir=$HOME/.local/bin
 mkdir -p $bindir
@@ -63,6 +68,7 @@ julia=$bindir/julia
 ln -sf $dest/bin/julia $julia
 
 export PATH=$bindir:$PATH
+which julia
 julia -e 'using InteractiveUtils; versioninfo()'
 
 
