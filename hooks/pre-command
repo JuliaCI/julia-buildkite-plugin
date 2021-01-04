@@ -15,6 +15,7 @@ fi
 ## download Julia
 
 version="$BUILDKITE_PLUGIN_JULIA_VERSION"
+echo "--- :julia: Downloading Julia $version"
 
 if [[ "$OSTYPE" == "linux-gnu"* ]]; then
     os="linux"
@@ -48,8 +49,6 @@ else
     url="https://julialang-s3.julialang.org/bin/$os/$larch/$version/$filename"
 fi
 
-echo "--- :julia: Downloading Julia $version"
-
 downloads=${XDG_DOWNLOAD_DIR:-$HOME/Downloads}
 mkdir -p $downloads
 wget -nv -NP $downloads "$url"
@@ -68,6 +67,8 @@ julia -e 'using InteractiveUtils; versioninfo()'
 
 
 ## update the registry
+
+echo "--- :julia: Updating the registry"
 
 # Occasionally, there are rather large delays (> a few hours) between the time a package is
 # registered in General and propagated to pkg.julialang.org. We can avoid this by manually
