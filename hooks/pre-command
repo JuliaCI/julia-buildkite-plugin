@@ -6,7 +6,7 @@ shopt -s extglob
 ## make sure we start with a clean depot
 
 if [[ -d $HOME/.julia ]]; then
-    pushd $HOME/.julia
+    pushd "$HOME/.julia"
     rm -rf -- !(artifacts registries packages compiled datadeps)
     popd
 fi
@@ -57,17 +57,17 @@ fi
 
 echo "Source URL: $url"
 downloads=${XDG_DOWNLOAD_DIR:-$HOME/Downloads}
-mkdir -p $downloads/$release
-wget -nv -NP $downloads/$release "$url"
+mkdir -p "$downloads/$release"
+wget -nv -NP "$downloads/$release" "$url"
 
 dest=$HOME/.local/opt/julia-$version
-mkdir -p $dest
-tar -xf $downloads/$release/$filename --strip-components=1 -C $dest
+mkdir -p "$dest"
+tar -xf "$downloads/$release/$filename" --strip-components=1 -C "$dest"
 
 bindir=$HOME/.local/bin
-mkdir -p $bindir
+mkdir -p "$bindir"
 julia=$bindir/julia
-ln -sf $dest/bin/julia $julia
+ln -sf "$dest/bin/julia" "$julia"
 
 export PATH=$bindir:$PATH
 which julia
