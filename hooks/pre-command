@@ -42,6 +42,7 @@ else
 fi
 
 if [[ "$version" == "nightly" ]]; then
+    release="nightly"
     filename="julia-latest-$os$nightly_rarch.tar.gz"
     url="https://julialangnightlies-s3.julialang.org/bin/$os/$larch/$filename"
 elif [[ "$version" =~ ^(.+)-nightly$ ]]; then
@@ -49,6 +50,7 @@ elif [[ "$version" =~ ^(.+)-nightly$ ]]; then
     filename="julia-latest-$os$nightly_rarch.tar.gz"
     url="https://julialangnightlies-s3.julialang.org/bin/$os/$larch/$release/$filename"
 else
+    release=$version
     filename="julia-$version-latest-$os-$rarch.tar.gz"
     url="https://julialang-s3.julialang.org/bin/$os/$larch/$version/$filename"
 fi
