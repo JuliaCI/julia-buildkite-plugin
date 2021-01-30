@@ -7,7 +7,7 @@ shopt -s extglob
 
 if [[ -d $HOME/.julia ]]; then
     pushd "$HOME/.julia"
-    rm -rf -- !(artifacts registries packages compiled datadeps)
+    rm -rf -- !(registries|packages|artifacts|datadeps)
     popd
 fi
 
