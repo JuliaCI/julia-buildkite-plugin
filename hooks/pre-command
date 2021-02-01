@@ -41,15 +41,20 @@ else
     exit 1
 fi
 
-if [[ "$version" == "nightly" ]]; then
+if [[ "$version" == "nightly" ]]; then        # `version: 'nightly'`
     release="nightly"
     filename="julia-latest-$os$nightly_rarch.tar.gz"
     url="https://julialangnightlies-s3.julialang.org/bin/$os/$larch/$filename"
-elif [[ "$version" =~ ^(.+)-nightly$ ]]; then
+elif [[ "$version" =~ ^(.+)-nightly$ ]]; then # for example, `version: '1.6-nightly'`
     release=${BASH_REMATCH[1]}
     filename="julia-latest-$os$nightly_rarch.tar.gz"
     url="https://julialangnightlies-s3.julialang.org/bin/$os/$larch/$release/$filename"
-else
+elif [[ $version =~ ^-?[0-9]+$ ]]; then       # for example, `version: '1'` or `version: '234'`
+    parentdirectory=$(dirname $BASH_SOURCE)
+    release=$(python3 $parentdirectory/expand-major-only.py $version)
+    filename="julia-$release-latest-$os-$rarch.tar.gz"
+    url="https://julialang-s3.julialang.org/bin/$os/$larch/$release/$filename"
+else                                          # for example, `version: '123.456'`
     release=$version
     filename="julia-$version-latest-$os-$rarch.tar.gz"
     url="https://julialang-s3.julialang.org/bin/$os/$larch/$version/$filename"
