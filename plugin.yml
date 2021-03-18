@@ -6,4 +6,6 @@ configuration:
   properties:
     version:
       type: string
+    clone_registry:
+      type: boolean
   additionalProperties: false
