@@ -41,6 +41,16 @@ else
     exit 1
 fi
 
+# use either `curl` or `wget`
+if [[ -n "$(which wget 2>/dev/null)" ]]; then
+    download() { wget -nv -NP "$(dirname "$2")" "$1"; }
+elif [[ -n "$(which curl 2>/dev/null)" ]]; then
+    download() { curl -Lfs "$1" -o "$2" -z "$1"; }
+else
+    buildkite-agent annotate --style error "No download agent available"
+    exit 1
+fi
+
 if [[ "$version" == "nightly" ]]; then        # `version: 'nightly'`
     release="nightly"
     filename="julia-latest-$os$nightly_rarch.tar.gz"
@@ -63,7 +73,7 @@ fi
 echo "Source URL: $url"
 downloads=${XDG_DOWNLOAD_DIR:-$HOME/Downloads}
 mkdir -p "$downloads/$release"
-wget -nv -NP "$downloads/$release" "$url"
+download "$url" "$downloads/$release/$filename"
 
 dest=$HOME/.local/opt/julia-$version
 mkdir -p "$dest"
