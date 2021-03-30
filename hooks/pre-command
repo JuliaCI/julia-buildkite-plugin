@@ -3,20 +3,60 @@ set -euo pipefail
 shopt -s extglob
 
 
-## make sure we start with a clean depot
+## Set some global configuration options, but allow users to override them
 
-if [[ -d $HOME/.julia ]]; then
-    pushd "$HOME/.julia"
-    rm -rf -- !(registries|packages|artifacts|datadeps)
-    popd
+# Where Julia will be downloaded/extracted to, and where we'll store our depots and whatnot
+# Persist this directory to massively speed up your builds
+CACHE_DIR=${BUILDKITE_PLUGIN_JULIA_CACHE_DIR:-${HOME}/.cache/julia-buildkite-plugin}
+
+# The version of Julia we're downloading
+JULIA_VERSION="${BUILDKITE_PLUGIN_JULIA_VERSION}"
+
+# If the user has asked for an isolated depot, we will create one inside of `CACHE_DIR`
+# that is specific to the current pipeline; use `PERSIST_DEPOT_DIRS` to keep some directories
+# around between invocations; by default we persist content-addressed directories such as
+# packages, artifacts and compiled `.ji` files
+if [[ "${BUILDKITE_PLUGIN_JULIA_ISOLATED_DEPOT:-true}" == "true" ]]; then
+    # Export `JULIA_DEPOT_PATH` so that future julia invocations use this depot
+    export JULIA_DEPOT_PATH="${CACHE_DIR}/depots/${BUILDKITE_PIPELINE_ID}"
+    PERSIST_DEPOT_DIRS="$(echo ${BUILDKITE_PLUGIN_JULIA_PERSIST_DEPOT_DIRS:-registries,packages,artifacts,compiled,datadeps} | tr ',' ' ' )"
+    
+    # Helper function to join a list of arguments by a particular character
+    function join_by { local IFS="$1"; shift; echo "$*"; }
+
+    # If the depot we're isolating ourselves inside of actually exists, we clean out
+    # any directories not explicitly saved via `PERSIST_DEPOT_DIRS`
+    if [[ -d "${JULIA_DEPOT_PATH}" ]]; then
+        echo "--- :broom: Cleaning out depot at ${JULIA_DEPOT_PATH}, persisting: '${PERSIST_DEPOT_DIRS}'"
+        pushd "${JULIA_DEPOT_PATH}" >/dev/null
+        rm -rf -- !($(join_by "|" ${PERSIST_DEPOT_DIRS}))
+        popd >/dev/null
+    fi
+else
+    if [[ -n "${BUILDKITE_PLUGIN_JULIA_PERSIST_DEPOT_DIRS}" ]]; then
+        buildkite-agent annotate --style warning "persist_depot_dirs specified with a non-isolated depot; this has no effect."
+    fi
+fi
+
+# Look around to find the default download engine
+if [[ -n "$(which wget 2>/dev/null)" ]]; then
+    download() { wget -nv -NP "$(dirname "$2")" "$1"; }
+elif [[ -n "$(which curl 2>/dev/null)" ]]; then
+    download() { curl -Lfs "$1" -o "$2" -z "$1"; }
+else
+    buildkite-agent annotate --style error "No download agent available"
+    exit 1
 fi
 
 
-## download Julia
+# Next, let's download Julia by calculating the URL we'll download from,
+# then using `curl`/`wget`'s timestamping features to re-download if the
+# source URL has updated its contents; if we end up downloading something
+# we'll notice and re-extract by comparing timestamps of the file before
+# and after download.
+echo "--- :julia: Downloading Julia $JULIA_VERSION"
 
-version="$BUILDKITE_PLUGIN_JULIA_VERSION"
-echo "--- :julia: Downloading Julia $version"
-
+# Calculate the download URL
 if [[ "$OSTYPE" == "linux-gnu"* ]]; then
     os="linux"
     machine=$(uname -m)
@@ -41,73 +81,48 @@ else
     exit 1
 fi
 
-# use either `curl` or `wget`
-if [[ -n "$(which wget 2>/dev/null)" ]]; then
-    download() { wget -nv -NP "$(dirname "$2")" "$1"; }
-elif [[ -n "$(which curl 2>/dev/null)" ]]; then
-    download() { curl -Lfs "$1" -o "$2" -z "$1"; }
-else
-    buildkite-agent annotate --style error "No download agent available"
-    exit 1
-fi
-
-if [[ "$version" == "nightly" ]]; then        # `version: 'nightly'`
+if [[ "$JULIA_VERSION" == "nightly" ]]; then        # `version: 'nightly'`
     release="nightly"
     filename="julia-latest-$os$nightly_rarch.tar.gz"
     url="https://julialangnightlies-s3.julialang.org/bin/$os/$larch/$filename"
-elif [[ "$version" =~ ^(.+)-nightly$ ]]; then # for example, `version: '1.6-nightly'`
-    release=${BASH_REMATCH[1]}
+elif [[ "$JULIA_VERSION" =~ ^(.+)-nightly$ ]]; then # for example, `version: '1.6-nightly'`
+    release="${BASH_REMATCH[1]}"
     filename="julia-latest-$os$nightly_rarch.tar.gz"
     url="https://julialangnightlies-s3.julialang.org/bin/$os/$larch/$release/$filename"
-elif [[ $version =~ ^-?[0-9]+$ ]]; then       # for example, `version: '1'` or `version: '234'`
-    parentdirectory=$(dirname $BASH_SOURCE)
-    release=$(python3 $parentdirectory/expand-major-only.py $version)
+else
+    if [[ $JULIA_VERSION =~ ^-?[0-9]+$ ]]; then     # for example, `version: '1'` or `version: '234'`
+        release="$(python3 $(dirname $BASH_SOURCE)/expand-major-only.py "${JULIA_VERSION}")"
+    else
+        release="${JULIA_VERSION}"                  # for example, `version: '123.456'`
+    fi
     filename="julia-$release-latest-$os-$rarch.tar.gz"
     url="https://julialang-s3.julialang.org/bin/$os/$larch/$release/$filename"
-else                                          # for example, `version: '123.456'`
-    release=$version
-    filename="julia-$version-latest-$os-$rarch.tar.gz"
-    url="https://julialang-s3.julialang.org/bin/$os/$larch/$version/$filename"
 fi
 
+# Download Julia to our cache directory.  If the file already exists, this may take
+# only a few hundred milliseconds, as it checks the timestamp of the file on the
+# remote server and compares against the local timestamp.
 echo "Source URL: $url"
-downloads=${XDG_DOWNLOAD_DIR:-$HOME/Downloads}
-mkdir -p "$downloads/$release"
-download "$url" "$downloads/$release/$filename"
+tarball_path="${CACHE_DIR}/downloads/$release/$filename"
+mkdir -p "$(dirname ${tarball_path})"
+orig_mtime=$(stat -c %y "${tarball_path}" 2>/dev/null || true)
+download "${url}" "${tarball_path}"
+post_dl_mtime=$(stat -c %y "${tarball_path}" 2>/dev/null)
 
-dest=$HOME/.local/opt/julia-$version
-mkdir -p "$dest"
-tar -xf "$downloads/$release/$filename" --strip-components=1 -C "$dest"
-
-bindir=$HOME/.local/bin
-mkdir -p "$bindir"
-julia=$bindir/julia
-ln -sf "$dest/bin/julia" "$julia"
-
-export PATH=$bindir:$PATH
-which julia
-julia -e 'using InteractiveUtils; versioninfo()'
-
-
-if [[ "${BUILDKITE_PLUGIN_JULIA_CLONE_REGISTRY:-true}" == "true" ]]; then
-    echo "--- :julia: Updating the registry"
-
-    # Occasionally, there are rather large delays (> a few hours) between the time a package is
-    # registered in General and propagated to pkg.julialang.org. We can avoid this by manually
-    # updating the registry, not using the Julia package servers while doing so:
-    # - https://github.com/JuliaLang/Pkg.jl/issues/2011
-    # - https://github.com/JuliaRegistries/General/issues/16777
-    # - https://github.com/JuliaPackaging/PkgServer.jl/issues/60
-    JULIA_PKG_SERVER="" \
-    julia -e '
-      using Pkg
-      if VERSION >= v"1.1-"
-        if !isdir(joinpath(DEPOT_PATH[1], "registries", "General"))
-          Pkg.Registry.add("General")
-        else
-          Pkg.Registry.update()
-        end
-      else
-        Pkg.API.update_registry(Pkg.Types.Context())
-      end'
+# If the download actually touched the file, we're going to unpack it
+# We unpack into another location within our cache directory, then add
+# it to the path.
+unpack_dest=${CACHE_DIR}/julia_installs/julia-${JULIA_VERSION}-${rarch}
+if [[ "${orig_mtime}" != "${post_dl_mtime}" ]]; then
+    echo "New installation detected, unpacking!"
+    rm -rf "${unpack_dest}"
+    mkdir -p "${unpack_dest}"
+    tar -xof "${tarball_path}" --strip-components=1 -C "${unpack_dest}"
 fi
+# Export `PATH` such that this `julia` is the first one other plugins find
+export PATH=${unpack_dest}/bin:$PATH
+
+# Show that julia is installed and print out the version info
+echo "--- :julia: Installation Successful"
+echo "Julia ${JULIA_VERSION} successfully installed to $(which julia)"
+julia -e 'using InteractiveUtils; versioninfo()'
