@@ -39,10 +39,12 @@ else
 fi
 
 # Look around to find the default download engine
-if [[ -n "$(which wget 2>/dev/null)" ]]; then
+# We prefer `curl` as it's more likely it's up to date and not some kind of
+# busybox impostor, which `wget` is within our very own test suite!
+if [[ -n "$(which curl 2>/dev/null)" ]]; then
+    download() { curl -Lfs "$1" -o "$2" -z "$2"; }
+elif [[ -n "$(which wget 2>/dev/null)" ]]; then
     download() { wget -nv -NP "$(dirname "$2")" "$1"; }
-elif [[ -n "$(which curl 2>/dev/null)" ]]; then
-    download() { curl -Lfs "$1" -o "$2" -z "$1"; }
 else
     buildkite-agent annotate --style error "No download agent available"
     exit 1
@@ -72,7 +74,21 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
         nightly_rarch="aarch64"
         ;;
       *)
-        buildkite-agent annotate --style error "Unhandled machine $machine"
+        buildkite-agent annotate --style error "Unhandled OS $OSTYPE/machine $machine combo"
+        exit 1
+        ;;
+    esac
+elif [[ "$OSTYPE" == "linux-musl"* ]]; then
+    os="musl"
+    machine=$(uname -m)
+    case "$machine" in
+      "x86_64")
+        larch="x64"
+        rarch="x86_64"
+        nightly_rarch="64"
+        ;;
+      *)
+        buildkite-agent annotate --style error "Unhandled OS $OSTYPE/machine $machine combo"
         exit 1
         ;;
     esac
