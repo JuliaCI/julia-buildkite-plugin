@@ -6,6 +6,8 @@ configuration:
   properties:
     version:
       type: string
-    clone_registry:
+    isolated_depot:
       type: boolean
+    persist_depot_dirs:
+      type: string
   additionalProperties: false
