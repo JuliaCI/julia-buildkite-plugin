@@ -33,7 +33,7 @@ if [[ "${BUILDKITE_PLUGIN_JULIA_ISOLATED_DEPOT:-true}" == "true" ]]; then
         popd >/dev/null
     fi
 else
-    if [[ -n "${BUILDKITE_PLUGIN_JULIA_PERSIST_DEPOT_DIRS}" ]]; then
+    if [[ -v BUILDKITE_PLUGIN_JULIA_PERSIST_DEPOT_DIRS ]]; then
         buildkite-agent annotate --style warning "persist_depot_dirs specified with a non-isolated depot; this has no effect."
     fi
 fi
@@ -97,29 +97,31 @@ else
     exit 1
 fi
 
+path="bin/$os/$larch"
 if [[ "$JULIA_VERSION" == "nightly" ]]; then        # `version: 'nightly'`
-    release="nightly"
-    filename="julia-latest-$os$nightly_rarch.tar.gz"
-    url="https://julialangnightlies-s3.julialang.org/bin/$os/$larch/$filename"
+    bucket="julialangnightlies-s3"
+    path="$path/julia-latest-$os$nightly_rarch"
 elif [[ "$JULIA_VERSION" =~ ^(.+)-nightly$ ]]; then # for example, `version: '1.6-nightly'`
+    bucket="julialangnightlies-s3"
     release="${BASH_REMATCH[1]}"
-    filename="julia-latest-$os$nightly_rarch.tar.gz"
-    url="https://julialangnightlies-s3.julialang.org/bin/$os/$larch/$release/$filename"
+    path="$path/$release/julia-latest-$os$nightly_rarch"
 else
+    bucket="julialang-s3"
     if [[ $JULIA_VERSION =~ ^-?[0-9]+$ ]]; then     # for example, `version: '1'` or `version: '234'`
         release="$(python3 $(dirname $BASH_SOURCE)/expand-major-only.py "${JULIA_VERSION}")"
     else
         release="${JULIA_VERSION}"                  # for example, `version: '123.456'`
     fi
-    filename="julia-$release-latest-$os-$rarch.tar.gz"
-    url="https://julialang-s3.julialang.org/bin/$os/$larch/$release/$filename"
+    # TODO: support for a fully-specified version, e.g. 1.5.3
+    path="$path/$release/julia-$release-latest-$os-$rarch"
 fi
+url="https://$bucket.julialang.org/$path.tar.gz"
 
 # Download Julia to our cache directory.  If the file already exists, this may take
 # only a few hundred milliseconds, as it checks the timestamp of the file on the
 # remote server and compares against the local timestamp.
 echo "Source URL: $url"
-tarball_path="${CACHE_DIR}/downloads/$release/$filename"
+tarball_path="${CACHE_DIR}/downloads/$path.tar.gz"
 mkdir -p "$(dirname ${tarball_path})"
 orig_mtime=$(stat -c %y "${tarball_path}" 2>/dev/null || true)
 download "${url}" "${tarball_path}"
@@ -128,10 +130,10 @@ post_dl_mtime=$(stat -c %y "${tarball_path}" 2>/dev/null)
 # If the download actually touched the file, we're going to unpack it
 # We unpack into another location within our cache directory, then add
 # it to the path.
-unpack_dest=${CACHE_DIR}/julia_installs/julia-${release}-${rarch}
+unpack_dest=${CACHE_DIR}/julia_installs/$path
 echo "Installing location: ${unpack_dest}"
-if [[ "${orig_mtime}" != "${post_dl_mtime}" ]]; then
-    echo "New installation detected, unpacking!"
+if [[ ! -d "${unpack_dest}" || "${orig_mtime}" != "${post_dl_mtime}" ]]; then
+    echo "New or updated installation detected, unpacking!"
     rm -rf "${unpack_dest}"
     mkdir -p "${unpack_dest}"
     tar -xof "${tarball_path}" --strip-components=1 -C "${unpack_dest}"
