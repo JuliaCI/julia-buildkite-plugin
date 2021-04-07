@@ -33,7 +33,7 @@ if [[ "${BUILDKITE_PLUGIN_JULIA_ISOLATED_DEPOT:-true}" == "true" ]]; then
         popd >/dev/null
     fi
 else
-    if [[ -n "${BUILDKITE_PLUGIN_JULIA_PERSIST_DEPOT_DIRS}" ]]; then
+    if [[ -v BUILDKITE_PLUGIN_JULIA_PERSIST_DEPOT_DIRS ]]; then
         buildkite-agent annotate --style warning "persist_depot_dirs specified with a non-isolated depot; this has no effect."
     fi
 fi
