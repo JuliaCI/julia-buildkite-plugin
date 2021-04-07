@@ -129,7 +129,7 @@ post_dl_mtime=$(stat -c %y "${tarball_path}" 2>/dev/null)
 # We unpack into another location within our cache directory, then add
 # it to the path.
 unpack_dest=${CACHE_DIR}/julia_installs/julia-${release}-${rarch}
-echo "Installing to ${unpack_dest}"
+echo "Installing location: ${unpack_dest}"
 if [[ "${orig_mtime}" != "${post_dl_mtime}" ]]; then
     echo "New installation detected, unpacking!"
     rm -rf "${unpack_dest}"
