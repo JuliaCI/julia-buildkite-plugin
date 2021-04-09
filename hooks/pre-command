@@ -145,3 +145,20 @@ export PATH=${unpack_dest}/bin:$PATH
 echo "--- :julia: Installation Successful"
 echo "Julia ${JULIA_VERSION} successfully installed to $(which julia)"
 julia -e 'using InteractiveUtils; versioninfo()'
+
+
+if [[ "${BUILDKITE_PLUGIN_JULIA_UPDATE_REGISTRY:-true}" == "true" ]]; then
+    echo "--- :julia: Updating the registry"
+
+    julia -e '
+      using Pkg
+      if VERSION >= v"1.1-"
+        if !isdir(joinpath(DEPOT_PATH[1], "registries", "General"))
+          Pkg.Registry.add("General")
+        else
+          Pkg.Registry.update()
+        end
+      else
+        Pkg.API.update_registry(Pkg.Types.Context())
+      end'
+fi
