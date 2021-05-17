@@ -20,7 +20,7 @@ if [[ "${BUILDKITE_PLUGIN_JULIA_ISOLATED_DEPOT:-true}" == "true" ]]; then
     # Export `JULIA_DEPOT_PATH` so that future julia invocations use this depot
     export JULIA_DEPOT_PATH="${CACHE_DIR}/depots/${BUILDKITE_PIPELINE_ID}"
     PERSIST_DEPOT_DIRS="$(echo ${BUILDKITE_PLUGIN_JULIA_PERSIST_DEPOT_DIRS:-registries,packages,artifacts,compiled,datadeps} | tr ',' ' ' )"
-    
+
     # Helper function to join a list of arguments by a particular character
     function join_by { local IFS="$1"; shift; echo "$*"; }
 
@@ -65,33 +65,50 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
     case "$machine" in
       "x86_64")
         larch="x64"
-        rarch="x86_64"
-        nightly_rarch="64"
+        rosarch="linux-x86_64"
+        nightly_rosarch="linux64"
         ;;
       "aarch64")
         larch="aarch64"
-        rarch="aarch64"
-        nightly_rarch="aarch64"
+        rosarch="linux-aarch64"
+        nightly_rosarch="linuxaarch64"
         ;;
       *)
         buildkite-agent annotate --style error "Unhandled OS $OSTYPE/machine $machine combo"
         exit 1
         ;;
     esac
+    ext="tar.gz"
 elif [[ "$OSTYPE" == "linux-musl"* ]]; then
     os="musl"
     machine=$(uname -m)
     case "$machine" in
       "x86_64")
         larch="x64"
-        rarch="x86_64"
-        nightly_rarch="64"
+        rosarch="musl-x86_64"
+        nightly_rosarch="musl64"
         ;;
       *)
         buildkite-agent annotate --style error "Unhandled OS $OSTYPE/machine $machine combo"
         exit 1
         ;;
     esac
+    ext="tar.gz"
+elif [[ "$OSTYPE" == "msys" ]]; then
+    os="winnt"
+    machine=$(uname -m)
+    case "$machine" in
+      "x86_64")
+        larch="x64"
+        rosarch="win64"
+        nightly_rosarch="win64"
+        ;;
+      *)
+        buildkite-agent annotate --style error "Unhandled OS $OSTYPE/machine $machine combo"
+        exit 1
+        ;;
+    esac
+    ext="zip"
 else
     buildkite-agent annotate --style error "Unhandled OS $OSTYPE"
     exit 1
@@ -100,11 +117,11 @@ fi
 path="bin/$os/$larch"
 if [[ "$JULIA_VERSION" == "nightly" ]]; then        # `version: 'nightly'`
     bucket="julialangnightlies-s3"
-    path="$path/julia-latest-$os$nightly_rarch"
+    path="$path/julia-latest-$nightly_rosarch"
 elif [[ "$JULIA_VERSION" =~ ^(.+)-nightly$ ]]; then # for example, `version: '1.6-nightly'`
     bucket="julialangnightlies-s3"
     release="${BASH_REMATCH[1]}"
-    path="$path/$release/julia-latest-$os$nightly_rarch"
+    path="$path/$release/julia-latest-$nightly_rosarch"
 else
     bucket="julialang-s3"
     if [[ $JULIA_VERSION =~ ^-?[0-9]+$ ]]; then     # for example, `version: '1'` or `version: '234'`
@@ -113,19 +130,19 @@ else
         release="${JULIA_VERSION}"                  # for example, `version: '123.456'`
     fi
     # TODO: support for a fully-specified version, e.g. 1.5.3
-    path="$path/$release/julia-$release-latest-$os-$rarch"
+    path="$path/$release/julia-$release-latest-$rosarch"
 fi
-url="https://$bucket.julialang.org/$path.tar.gz"
+url="https://$bucket.julialang.org/$path.$ext"
 
 # Download Julia to our cache directory.  If the file already exists, this may take
 # only a few hundred milliseconds, as it checks the timestamp of the file on the
 # remote server and compares against the local timestamp.
 echo "Source URL: $url"
-tarball_path="${CACHE_DIR}/downloads/$path.tar.gz"
-mkdir -p "$(dirname ${tarball_path})"
-orig_mtime=$(stat -c %y "${tarball_path}" 2>/dev/null || true)
-download "${url}" "${tarball_path}"
-post_dl_mtime=$(stat -c %y "${tarball_path}" 2>/dev/null)
+archive_path="${CACHE_DIR}/downloads/$path.$ext"
+mkdir -p "$(dirname ${archive_path})"
+orig_mtime=$(stat -c %y "${archive_path}" 2>/dev/null || true)
+download "${url}" "${archive_path}"
+post_dl_mtime=$(stat -c %y "${archive_path}" 2>/dev/null)
 
 # If the download actually touched the file, we're going to unpack it
 # We unpack into another location within our cache directory, then add
@@ -136,21 +153,28 @@ if [[ ! -d "${unpack_dest}" || "${orig_mtime}" != "${post_dl_mtime}" ]]; then
     echo "New or updated installation detected, unpacking!"
     rm -rf "${unpack_dest}"
     mkdir -p "${unpack_dest}"
-    tar -xof "${tarball_path}" --strip-components=1 -C "${unpack_dest}"
+    if [[ "${archive_path}" == *.tar.gz ]]; then
+      tar -xof "${archive_path}" --strip-components=1 -C "${unpack_dest}"
+    elif [[ "${archive_path}" == *.zip ]]; then
+      unzip -q "${archive_path}" -d "${unpack_dest}"
+      mv "${unpack_dest}"/julia-*/* "${unpack_dest}"
+      rmdir "${unpack_dest}"/julia-*
+    else
+      buildkite-agent annotate --style error "Unhandled archive type ${archive_path}"
+      exit 1
+    fi
 fi
-# Export `PATH` such that this `julia` is the first one other plugins find
-export PATH=${unpack_dest}/bin:$PATH
 
 # Show that julia is installed and print out the version info
 echo "--- :julia: Installation Successful"
-echo "Julia ${JULIA_VERSION} successfully installed to $(which julia)"
-julia -e 'using InteractiveUtils; versioninfo()'
+echo "Julia ${JULIA_VERSION} successfully installed to ${unpack_dest}"
+"${unpack_dest}/bin/julia" -e 'using InteractiveUtils; versioninfo()'
 
-
+# Update the registry
 if [[ "${BUILDKITE_PLUGIN_JULIA_UPDATE_REGISTRY:-true}" == "true" ]]; then
     echo "--- :julia: Updating the registry"
 
-    julia -e '
+    "${unpack_dest}/bin/julia" -e '
       using Pkg
       if VERSION >= v"1.1-"
         if !isdir(joinpath(DEPOT_PATH[1], "registries", "General"))
@@ -161,4 +185,16 @@ if [[ "${BUILDKITE_PLUGIN_JULIA_UPDATE_REGISTRY:-true}" == "true" ]]; then
       else
         Pkg.API.update_registry(Pkg.Types.Context())
       end'
+fi
+
+# Export `PATH` such that this `julia` is the first one other plugins find
+export PATH=${unpack_dest}/bin:"$PATH"
+if [[ "$OSTYPE" == "msys" ]]; then
+  # buildkite/agent#872: PATH gets corrupted on Windows
+  IFS=':'
+  updated_path=""
+  for p in $PATH ; do
+    updated_path="${updated_path};$(cygpath -w $p)"
+  done
+  export PATH="${updated_path}"
 fi
