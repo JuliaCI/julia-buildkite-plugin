@@ -31,8 +31,8 @@ julia --color=yes -e 'using Pkg; using Dates; Pkg.gc()'
 if [[ "${BUILDKITE_PLUGIN_JULIA_ISOLATED_DEPOT:-true}" == "true" ]]; then
     DEPOT_SIZE=$(du --summarize --bytes "${JULIA_DEPOT_PATH}" | cut -f 1)
     DEPOT_HARD_LIMIT=21474836480 # 21474836480 bytes = 20 GiB
+    echo "The depot size is ${DEPOT_SIZE} bytes"
     if [[ ${DEPOT_SIZE} -gt ${DEPOT_HARD_LIMIT} ]]; then
-        echo "The depot size is ${DEPOT_SIZE} bytes"
         echo "This is greater than the hard limit ($DEPOT_HARD_LIMIT bytes), so we will clear the entire cache"
         rm -rf "${JULIA_DEPOT_PATH}"
         mkdir -p "${JULIA_DEPOT_PATH}"
