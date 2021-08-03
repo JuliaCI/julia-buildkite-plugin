@@ -23,7 +23,7 @@ fi
 ### Step 2: Run `Pkg.gc` to try to reduce the size of the depot.
 
 echo "Running Pkg.gc()"
-julia --color=yes -e 'using Pkg; using Dates; Pkg.gc(; collect_delay=Day(30), verbose=true)'
+julia --color=yes -e 'using Pkg; using Dates; VERSION >= v"1.6-" ? Pkg.gc(; collect_delay=Day(30), verbose=true) : Pkg.gc(; collect_delay=Day(30))'
 
 
 ### Step 3: If the depot is still greater than the hard limit, remove it altogether.
