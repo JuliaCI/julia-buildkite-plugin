@@ -32,13 +32,13 @@ GC_CMD="""
 using Pkg, Dates
 
 if VERSION >= v"1.6-"
-    # If we're on `v1.6+`, we can use `verbose`, which is nice
+    # If we're on v1.6+, we can use verbose, which is nice
     Pkg.gc(collect_delay=Second(0), verbose=true)
 elseif VERSION >= v"1.3-"
-    # IF we're on `v1.3+`, we must set the `collect_delay` low
+    # If we're on v1.3+, we must set the collect_delay low
     Pkg.gc(collect_delay=Second(0))
 else
-    # Otherwise, on truly old versions, the only thing we can do is call `gc()`
+    # Otherwise, on truly old versions, the only thing we can do is call gc()
     Pkg.gc()
 end
 """
