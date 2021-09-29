@@ -12,11 +12,11 @@ echo "--- :broom: Performing clean-up"
 echo "Removing coverage files"
 
 # Once JuliaLang/julia#26573 has been fixed, this should no longer be necessary.
-find "${CACHE_DIR}"/julia_installs -name "*.jl.*.cov" -type f -delete
+find "${CACHE_DIR}"/julia_installs -name "*.jl.*.cov" -type f -delete || true
 
 # Some packages check coverage files in, so only remove writable ones
 if [[ "${BUILDKITE_PLUGIN_JULIA_ISOLATED_DEPOT:-true}" == "true" ]]; then
-    find "${JULIA_DEPOT_PATH}"/packages -name "*.jl.*.cov" -type f -writable -delete
+    find "${JULIA_DEPOT_PATH}"/packages -name "*.jl.*.cov" -type f -writable -delete || true
 fi
 
 
