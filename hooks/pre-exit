@@ -28,10 +28,16 @@ fi
 # resources, which requires multiple invocations of `Pkg.gc` to be effective.
 
 echo "Running Pkg.gc()"
-julia --color=yes -e 'using Pkg; using Dates; VERSION >= v"1.6-" ? Pkg.gc(; collect_delay=Second(0), verbose=true) : Pkg.gc(; collect_delay=Second(30))'
-sleep 1
-julia --color=yes -e 'using Pkg; using Dates; VERSION >= v"1.6-" ? Pkg.gc(; collect_delay=Second(0), verbose=true) : Pkg.gc(; collect_delay=Second(30))'
+INTVERS="$(tr -d '.' <<<"${BUILDKITE_PLUGIN_JULIA_VERSION:0:3}")"
+if [[ "${BUILDKITE_PLUGIN_JULIA_VERSION}" == "nightly" ]] || [[ "${INTVERS}" -gt 16 ]]; then
+    GC_ARGS="collect_delay=Second(0), verbose=true"
+elif [[ "${INTVERS}" -gt 13 ]]; then
+    GC_ARGS="collect_delay=Second(0)"
+else
+    GC_ARGS=""
+fi
 
+julia --color=yes -e "using Pkg, Dates; Pkg.gc(${GC_ARGS})" || true
 
 ### Step 3: If the depot is still greater than the hard limit, remove it altogether.
 
