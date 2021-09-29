@@ -31,12 +31,15 @@ echo "Running Pkg.gc()"
 GC_CMD="""
 using Pkg, Dates
 
+# Allow the user to customize whether items are GC'ed immediately or not
+collect_delay = parse(Int64, get(ENV, \"BUILDKITE_PLUGIN_JULIA_CLEANUP_COLLECT_DELAY\", \"0\"))
+
 if VERSION >= v\"1.6-\"
     # If we're on v1.6+, we can use verbose, which is nice
-    Pkg.gc(collect_delay=Second(0), verbose=true)
+    Pkg.gc(collect_delay=Second(collect_delay), verbose=true)
 elseif VERSION >= v\"1.3-\"
     # If we're on v1.3+, we must set the collect_delay low
-    Pkg.gc(collect_delay=Second(0))
+    Pkg.gc(collect_delay=Second(collect_delay))
 else
     # Otherwise, on truly old versions, the only thing we can do is call gc()
     Pkg.gc()

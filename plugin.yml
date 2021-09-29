@@ -12,4 +12,6 @@ configuration:
       type: string
     depot_hard_size_limit:
       type: string
+    cleanup_collect_delay:
+      type: string
   additionalProperties: false
