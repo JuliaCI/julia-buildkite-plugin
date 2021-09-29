@@ -39,12 +39,12 @@ fi
 
 julia --color=yes -e "using Pkg, Dates; Pkg.gc(${GC_ARGS})" || true
 
-### Step 3: If the depot is still greater than the hard limit, remove it altogether.
 
+### Step 3: If the depot is still greater than the hard limit, remove it altogether.
 if [[ "${BUILDKITE_PLUGIN_JULIA_ISOLATED_DEPOT:-true}" == "true" ]]; then
     DEPOT_SIZE_HUMAN=$(du --human-readable --summarize "${JULIA_DEPOT_PATH}" | cut -f 1)
     DEPOT_SIZE=$(du --summarize --bytes "${JULIA_DEPOT_PATH}" | cut -f 1)
-    DEPOT_HARD_LIMIT=21474836480 # 21474836480 bytes = 20 GiB
+    DEPOT_HARD_LIMIT="${BUILDKITE_PLUGIN_JULIA_DEPOT_HARD_SIZE_LIMIT:-21474836480}" # 21474836480 bytes = 20 GiB
     echo "The depot size is: ${DEPOT_SIZE_HUMAN}"
     if [[ ${DEPOT_SIZE} -gt ${DEPOT_HARD_LIMIT} ]]; then
         echo "This is greater than the hard limit (${DEPOT_SIZE} > ${DEPOT_HARD_LIMIT} bytes), so we will clear the entire depot"

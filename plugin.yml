@@ -10,4 +10,6 @@ configuration:
       type: boolean
     persist_depot_dirs:
       type: string
+    depot_hard_size_limit:
+      type: string
   additionalProperties: false
