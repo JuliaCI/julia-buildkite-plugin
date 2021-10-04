@@ -32,7 +32,8 @@ GC_CMD="""
 using Pkg, Dates
 
 # Allow the user to customize whether items are GC'ed immediately or not
-collect_delay = parse(Int64, get(ENV, \"BUILDKITE_PLUGIN_JULIA_CLEANUP_COLLECT_DELAY\", \"0\"))
+# Defaults to deleting things after a week of inactivity
+collect_delay = parse(Int64, get(ENV, \"BUILDKITE_PLUGIN_JULIA_CLEANUP_COLLECT_DELAY\", \"604800\"))
 
 if VERSION >= v\"1.6-\"
     # If we're on v1.6+, we can use verbose, which is nice
