@@ -19,7 +19,7 @@ JULIA_VERSION="${BUILDKITE_PLUGIN_JULIA_VERSION}"
 if [[ "${BUILDKITE_PLUGIN_JULIA_ISOLATED_DEPOT:-true}" == "true" ]]; then
     # Export `JULIA_DEPOT_PATH` so that future julia invocations use this depot
     export JULIA_DEPOT_PATH="${CACHE_DIR}/depots/${BUILDKITE_PIPELINE_ID}"
-    PERSIST_DEPOT_DIRS="$(echo ${BUILDKITE_PLUGIN_JULIA_PERSIST_DEPOT_DIRS:-registries,packages,artifacts,compiled,datadeps} | tr ',' ' ' )"
+    PERSIST_DEPOT_DIRS="$(echo ${BUILDKITE_PLUGIN_JULIA_PERSIST_DEPOT_DIRS:-registries,packages,artifacts,compiled,datadeps,logs} | tr ',' ' ' )"
 
     # Helper function to join a list of arguments by a particular character
     function join_by { local IFS="$1"; shift; echo "$*"; }
