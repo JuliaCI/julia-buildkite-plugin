@@ -27,7 +27,6 @@ fi
 # `gc()` with `collect_delay` set to zero to cause immediate collection on versions of
 # julia that are new enough to have a generational Pkg GC.
 
-echo "Running Pkg.gc()"
 GC_CMD="""
 using Pkg, Dates
 
@@ -35,6 +34,7 @@ using Pkg, Dates
 # Defaults to deleting things after a week of inactivity
 collect_delay = parse(Int64, get(ENV, \"BUILDKITE_PLUGIN_JULIA_CLEANUP_COLLECT_DELAY\", \"604800\"))
 
+@info(\"Running Pkg.gc()\", collect_delay)
 if VERSION >= v\"1.6-\"
     # If we're on v1.6+, we can use verbose, which is nice
     Pkg.gc(collect_delay=Second(collect_delay), verbose=true)
