@@ -14,4 +14,6 @@ configuration:
       type: string
     cleanup_collect_delay:
       type: string
+    python:
+      type: string
   additionalProperties: false
