@@ -50,6 +50,21 @@ else
     exit 1
 fi
 
+# Look around to find `python3`; if it doesn't exist, complain
+if [[ ! -v BUILDKITE_PLUGIN_JULIA_PYTHON ]]; then
+    if [[ -n "$(which python3 2>/dev/null)" ]]; then
+        PYTHON="$(which python3)"
+    elif [[ -n "$(which python 2>/dev/null)" ]] && [[ "$(python --version)" == "Python 3"* ]]; then
+        PYTHON="$(which python)"
+    fi
+else
+    PYTHON="$(which "${BUILDKITE_PLUGIN_JULIA_PYTHON}")"
+fi
+
+if [[ ! -x "${PYTHON:-}" ]]; then
+    buildkite-agent annotate --style warning "No python 3 available!"
+    exit 1
+fi
 
 # Next, let's download Julia by calculating the URL we'll download from,
 # then using `curl`/`wget`'s timestamping features to re-download if the
@@ -125,7 +140,7 @@ elif [[ "$JULIA_VERSION" =~ ^(.+)-nightly$ ]]; then # for example, `version: '1.
 else
     bucket="julialang-s3"
     if [[ $JULIA_VERSION =~ ^-?[0-9]+$ ]]; then     # for example, `version: '1'` or `version: '234'`
-        release="$(python3 $(dirname $BASH_SOURCE)/expand-major-only.py "${JULIA_VERSION}")"
+        release="$("${PYTHON}" $(dirname $BASH_SOURCE)/expand-major-only.py "${JULIA_VERSION}")"
     else
         release="${JULIA_VERSION}"                  # for example, `version: '123.456'`
     fi
