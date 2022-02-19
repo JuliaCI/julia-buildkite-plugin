@@ -5,6 +5,11 @@ shopt -s extglob
 
 ## Set some global configuration options, but allow users to override them
 
+## If we're running in debug mode, be REALLY VERBOSE:
+if [[ "${BUILDKITE_PLUGIN_JULIA_DEBUG_PLUGIN:-false}" == "true" ]]; then
+    set -x
+fi
+
 # Where Julia will be downloaded/extracted to, and where we'll store our depots and whatnot
 # Persist this directory to massively speed up your builds
 CACHE_DIR=${BUILDKITE_PLUGIN_JULIA_CACHE_DIR:-${HOME}/.cache/julia-buildkite-plugin}
