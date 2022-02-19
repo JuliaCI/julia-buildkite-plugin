@@ -21,7 +21,7 @@ find "${CACHE_DIR}"/julia_installs -name "*.jl.*.cov" -type f -delete || true
 
 # Some packages check coverage files in, so only remove writable ones
 if [[ "${BUILDKITE_PLUGIN_JULIA_ISOLATED_DEPOT:-true}" == "true" ]]; then
-    find "${JULIA_DEPOT_PATH}"/packages -name "*.jl.*.cov" -type f -writable -delete || true
+    find "${JULIA_DEPOT_PATH}"/packages -name "*.jl.*.cov" -type f -perm -200 -delete || true
 fi
 
 
