@@ -16,4 +16,6 @@ configuration:
       type: string
     python:
       type: string
+    debug_plugin:
+      type: boolean
   additionalProperties: false

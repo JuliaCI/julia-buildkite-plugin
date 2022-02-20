@@ -5,6 +5,11 @@ shopt -s extglob
 
 ## Set some global configuration options, but allow users to override them
 
+## If we're running in debug mode, be REALLY VERBOSE:
+if [[ "${BUILDKITE_PLUGIN_JULIA_DEBUG_PLUGIN:-false}" == "true" ]]; then
+    set -x
+fi
+
 # Where Julia will be downloaded/extracted to, and where we'll store our depots and whatnot
 # Persist this directory to massively speed up your builds
 CACHE_DIR=${BUILDKITE_PLUGIN_JULIA_CACHE_DIR:-${HOME}/.cache/julia-buildkite-plugin}
@@ -48,6 +53,17 @@ elif [[ -n "$(which wget 2>/dev/null)" ]]; then
 else
     buildkite-agent annotate --style error "No download agent available"
     exit 1
+fi
+
+if [[ "${OSTYPE}" == "darwin"* ]] || [[ "${OSTYPE}" == "freebsd"* ]]; then
+    # BSD-style `stat` uses a different syntax than GNU-style
+    stat_mtime() {
+        stat -f "%m" "$@"
+    }
+else
+    stat_mtime() {
+        stat -c "%Y" "$@"
+    }
 fi
 
 # Look around to find `python3`; if it doesn't exist, complain
@@ -109,6 +125,24 @@ elif [[ "$OSTYPE" == "linux-musl"* ]]; then
         ;;
     esac
     ext="tar.gz"
+elif [[ "$OSTYPE" == "darwin"* ]]; then
+    os="mac"
+    machine=$(uname -m)
+    case "$machine" in
+      "x86_64")
+        larch="x64"
+        rosarch="mac64"
+        ;;
+      "arm64")
+        larch="aarch64"
+        rosarch="macaarch64"
+        ;;
+      *)
+        buildkite-agent annotate --style error "Unhandled OS $OSTYPE/machine $machine combo"
+        exit 1
+        ;;
+    esac
+    ext="tar.gz"
 elif [[ "$OSTYPE" == "msys" ]]; then
     os="winnt"
     machine=$(uname -m)
@@ -155,9 +189,9 @@ url="https://$bucket.julialang.org/$path.$ext"
 echo "Source URL: $url"
 archive_path="${CACHE_DIR}/downloads/$path.$ext"
 mkdir -p "$(dirname ${archive_path})"
-orig_mtime=$(stat -c %y "${archive_path}" 2>/dev/null || true)
+orig_mtime=$(stat_mtime "${archive_path}" 2>/dev/null || true)
 download "${url}" "${archive_path}"
-post_dl_mtime=$(stat -c %y "${archive_path}" 2>/dev/null)
+post_dl_mtime=$(stat_mtime "${archive_path}")
 
 # If the download actually touched the file, we're going to unpack it
 # We unpack into another location within our cache directory, then add

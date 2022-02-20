@@ -2,6 +2,11 @@
 set -euo pipefail
 shopt -s extglob
 
+## If we're running in debug mode, be REALLY VERBOSE:
+if [[ "${BUILDKITE_PLUGIN_JULIA_DEBUG_PLUGIN:-false}" == "true" ]]; then
+    set -x
+fi
+
 CACHE_DIR=${BUILDKITE_PLUGIN_JULIA_CACHE_DIR:-${HOME}/.cache/julia-buildkite-plugin}
 
 echo "--- :broom: Performing clean-up"
@@ -16,7 +21,7 @@ find "${CACHE_DIR}"/julia_installs -name "*.jl.*.cov" -type f -delete || true
 
 # Some packages check coverage files in, so only remove writable ones
 if [[ "${BUILDKITE_PLUGIN_JULIA_ISOLATED_DEPOT:-true}" == "true" ]]; then
-    find "${JULIA_DEPOT_PATH}"/packages -name "*.jl.*.cov" -type f -writable -delete || true
+    find "${JULIA_DEPOT_PATH}"/packages -name "*.jl.*.cov" -type f -perm -200 -delete || true
 fi
 
 
@@ -48,11 +53,16 @@ end
 """
 julia --color=yes -e "${GC_CMD}" || true
 
+if [[ "${OSTYPE}" == "darwin"* ]] || [[ "${OSTYPE}" == "freebsd"* ]]; then
+    DU_APPARENT_SIZE_FLAG="-A"
+else
+    DU_APPARENT_SIZE_FLAG="--apparent-size"
+fi
 
 ### Step 3: If the depot is still greater than the hard limit, remove it altogether.
 if [[ "${BUILDKITE_PLUGIN_JULIA_ISOLATED_DEPOT:-true}" == "true" ]]; then
-    DEPOT_SIZE_HUMAN=$(du --human-readable --summarize "${JULIA_DEPOT_PATH}" | cut -f 1)
-    DEPOT_SIZE=$(du --summarize --bytes "${JULIA_DEPOT_PATH}" | cut -f 1)
+    DEPOT_SIZE_HUMAN=$(du -h -s "${JULIA_DEPOT_PATH}" | cut -f 1)
+    DEPOT_SIZE=$(du ${DU_APPARENT_SIZE_FLAG} -s -B 1 "${JULIA_DEPOT_PATH}" | cut -f 1)
     DEPOT_HARD_LIMIT="${BUILDKITE_PLUGIN_JULIA_DEPOT_HARD_SIZE_LIMIT:-21474836480}" # 21474836480 bytes = 20 GiB
     echo "The depot size is: ${DEPOT_SIZE_HUMAN}"
     if [[ ${DEPOT_SIZE} -gt ${DEPOT_HARD_LIMIT} ]]; then
