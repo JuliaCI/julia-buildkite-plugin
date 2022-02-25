@@ -236,14 +236,16 @@ if [[ "${BUILDKITE_PLUGIN_JULIA_UPDATE_REGISTRY:-true}" == "true" ]]; then
       end'
 fi
 
-# Export `PATH` such that this `julia` is the first one other plugins find
-export PATH=${unpack_dest}/bin:"$PATH"
-if [[ "$OSTYPE" == "msys" ]]; then
-  # buildkite/agent#872: PATH gets corrupted on Windows
-  IFS=':'
-  updated_path=""
-  for p in $PATH ; do
-    updated_path="${updated_path};$(cygpath -w $p)"
-  done
-  export PATH="${updated_path}"
+if [[ "${OSTYPE}" != "msys" ]]; then
+    # Export `PATH` such that this `julia` is the first one other plugins find
+    export PATH=${unpack_dest}/bin:"$PATH"
+else
+    # buildkite/agent#872: PATH gets corrupted on Windows
+    # So we pass each element of `$PATH` through `cygpath -w`
+    MSYS_PATH="$(cygpath -w ${unpack_dest}/bin)"
+    IFS=':'
+    for p in $PATH ; do
+        MSYS_PATH="${MSYS_PATH};$(cygpath -w $p)"
+    done
+    export PATH="${MSYS_PATH}"
 fi
