@@ -1,0 +1,50 @@
+steps:
+  - label: ":julia: :linux: Linux x86_64 installation test"
+    agents:
+      queue: "juliaecosystem"
+      os: "linux"
+      arch: "x86_64"
+    plugins:
+      # Install version 1.6 _and_ general `1` build
+      - "./.buildkite/plugins/julia":
+          version: "1.6"
+      # Test asking for a general `1` build
+      - "./.buildkite/plugins/julia":
+          version: 1
+      # Ensure that trying to install the same one a second time, it's fast
+      - "./.buildkite/plugins/julia":
+          version: 1
+    commands: |
+      # Test that we pick up the latest version
+      [[ "$$(julia --version)" == "julia version 1."* ]]
+      [[ "$$(julia --version)" != "julia version 1.6"* ]]
+
+      # Ensure that there's another Julia that was installed
+      rm $$(which julia)
+      [[ "$$(julia --version)" == "julia version 1.6"* ]]
+
+
+  - label: ":julia: :macos: macOS x86_64 installation test"
+    agents:
+      queue: "juliaecosystem"
+      os: "macos"
+      arch: "x86_64"
+    plugins:
+      # Test asking for a general `1` build
+      - "./.buildkite/plugins/julia":
+          version: 1
+    commands: |
+      [[ "$$(julia --version)" == "julia version 1."* ]]
+
+  - label: ":julia: :macos: macOS aarch64 installation test"
+    agents:
+      queue: "juliaecosystem"
+      os: "macos"
+      arch: "aarch64"
+    plugins:
+      # Test asking for a general `1` build
+      - "./.buildkite/plugins/julia":
+          version: 1
+    commands: |
+      [[ "$$(julia --version)" == "julia version 1."* ]]
+
