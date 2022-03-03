@@ -53,8 +53,8 @@ steps:
     plugins:
       - improbable-eng/metahook:
           post-checkout: |
-            rm -rf .buildkite/plugins/julia
-            ln -svf $$(pwd) .buildkite/plugins/julia
+            rm -f .buildkite/plugins/julia
+            powershell -noprofile -command "New-Item -Path .buildkite/plugins/julia -ItemType SymbolicLink -Value ../.."
       # Test asking for a general `1` build
       - "./.buildkite/plugins/julia":
           version: 1
