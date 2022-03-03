@@ -53,12 +53,8 @@ steps:
     plugins:
       - improbable-eng/metahook:
           post-checkout: |
-            ls -la .buildkite/plugins
-            ls -la .buildkite/plugins/julia
-            rm -f .buildkite/plugins/julia
-            ln -svf ../.. .buildkite/plugins/julia
-            ls -la .buildkite/plugins
-            ls -la .buildkite/plugins/julia
+            rm -rf .buildkite/plugins/julia
+            ln -svf $$(pwd) .buildkite/plugins/julia
       # Test asking for a general `1` build
       - "./.buildkite/plugins/julia":
           version: 1
