@@ -11,9 +11,6 @@ steps:
       # Test asking for a general `1` build
       - "./.buildkite/plugins/julia":
           version: 1
-      # Ensure that trying to install the same one a second time, it's fast
-      - "./.buildkite/plugins/julia":
-          version: 1
     commands: |
       # Test that we pick up the latest version
       [[ "$$(julia --version)" == "julia version 1."* ]]
