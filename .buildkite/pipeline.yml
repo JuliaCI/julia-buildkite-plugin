@@ -51,10 +51,6 @@ steps:
       os: "windows"
       arch: "x86_64"
     plugins:
-      - improbable-eng/metahook:
-          post-checkout: |
-            rm -f .buildkite/plugins/julia
-            powershell -noprofile -command "New-Item -Path .buildkite/plugins/julia -ItemType SymbolicLink -Value ../.."
       # Test asking for a general `1` build
       - ".\\.buildkite\\plugins\\julia":
           version: 1
