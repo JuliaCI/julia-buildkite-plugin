@@ -56,7 +56,7 @@ steps:
             rm -f .buildkite/plugins/julia
             powershell -noprofile -command "New-Item -Path .buildkite/plugins/julia -ItemType SymbolicLink -Value ../.."
       # Test asking for a general `1` build
-      - "./.buildkite/plugins/julia":
+      - ".\\.buildkite\\plugins\\julia":
           version: 1
     commands: |
       [[ "$$(julia --version)" == "julia version 1."* ]]
