@@ -45,14 +45,15 @@ steps:
     commands: |
       [[ "$$(julia --version)" == "julia version 1."* ]]
 
-  - label: ":julia: :windows: Windows x86_64 installation test"
-    agents:
-      queue: "juliaecosystem"
-      os: "windows"
-      arch: "x86_64"
-    plugins:
-      # Test asking for a general `1` build
-      - ".\\.buildkite\\plugins\\julia":
-          version: 1
-    commands: |
-      [[ "$$(julia --version)" == "julia version 1."* ]]
+  # I've contacted buildkite support to figure out why this is not working, they're investiating.
+  #- label: ":julia: :windows: Windows x86_64 installation test"
+  #  agents:
+  #    queue: "juliaecosystem"
+  #    os: "windows"
+  #    arch: "x86_64"
+  #  plugins:
+  #    # Test asking for a general `1` build
+  #    - ".\\.buildkite\\plugins\\julia":
+  #        version: 1
+  #  commands: |
+  #    [[ "$$(julia --version)" == "julia version 1."* ]]
