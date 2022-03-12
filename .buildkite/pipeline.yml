@@ -24,8 +24,8 @@ steps:
           version: "1"
       # Use Sandbox to run inside of a 32-bit compatible rootfs
       - staticfloat/sandbox#v1:
-          rootfs_url: "https://github.com/JuliaCI/rootfs-images/releases/download/v5.4/tester_linux.i686.tar.gz"
-          rootfs_treehash: "5791b58219ad5899a44173a922070df8ce90d5c3"
+          rootfs_url: "https://github.com/JuliaCI/rootfs-images/releases/download/v5.5/agent_linux.i686.tar.gz"
+          rootfs_treehash: "9335532ac5eb036ebbb0d5b7fa1df0968f8f0f2d"
       # Smoosh python3 into our rootfs
       - improbable-eng/metahook:
           pre-command:
