@@ -6,6 +6,8 @@ configuration:
   properties:
     version:
       type: string
+    arch:
+      type: string
     isolated_depot:
       type: boolean
     persist_depot_dirs:

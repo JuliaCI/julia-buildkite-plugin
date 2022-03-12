@@ -5,20 +5,39 @@ steps:
       os: "linux"
       arch: "x86_64"
     plugins:
-      # Install version 1.6 _and_ general `1` build
+      # Install version 1.6 specifically
       - "./.buildkite/plugins/julia":
           version: "1.6"
-      # Test asking for a general `1` build
+    commands: |
+      # Test that we pick up version 1.6
+      [[ "$$(julia --version)" == "julia version 1.6"* ]]
+      [[ "$$(julia -E 'Sys.ARCH')" == ":x86_64" ]]
+
+  - label: ":julia: :linux: Linux i686 installation test"
+    agents:
+      queue: "juliaecosystem"
+      os: "linux"
+      arch: "x86_64"
+    plugins:
+      # Install Julia v1 so we can use Sandbox
+      - JuliaCI/julia:
+          version: "1"
+      # Use Sandbox to run inside of a 32-bit compatible rootfs
+      - staticfloat/sandbox#v1:
+          rootfs_url: "https://github.com/JuliaCI/rootfs-images/releases/download/v5.4/tester_linux.i686.tar.gz"
+          rootfs_treehash: "5791b58219ad5899a44173a922070df8ce90d5c3"
+      # Smoosh python3 into our rootfs
+      - improbable-eng/metahook:
+          pre-command:
+            apt update -y && apt install -y python3
+      # Override the "arch" parameter to install an i686 version inside of the sandbox
       - "./.buildkite/plugins/julia":
-          version: 1
+          version: "1"
+          arch: "i686"
     commands: |
       # Test that we pick up the latest version
       [[ "$$(julia --version)" == "julia version 1."* ]]
-      [[ "$$(julia --version)" != "julia version 1.6"* ]]
-
-      # Ensure that there's another Julia that was installed
-      rm $$(which julia)
-      [[ "$$(julia --version)" == "julia version 1.6"* ]]
+      [[ "$$(julia -E 'Sys.ARCH')" == ":i686" ]]
 
 
   - label: ":julia: :macos: macOS x86_64 installation test"
