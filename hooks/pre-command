@@ -82,22 +82,29 @@ if [[ ! -x "${PYTHON:-}" ]]; then
     exit 1
 fi
 
+# We allow the user to override the architecture we download
+ARCH="${BUILDKITE_PLUGIN_JULIA_ARCH:-$(uname -m)}"
+
 # Next, let's download Julia by calculating the URL we'll download from,
 # then using `curl`/`wget`'s timestamping features to re-download if the
 # source URL has updated its contents; if we end up downloading something
 # we'll notice and re-extract by comparing timestamps of the file before
 # and after download.
-echo "--- :julia: Downloading Julia $JULIA_VERSION"
+echo "--- :julia: Downloading Julia ${JULIA_VERSION} for arch ${ARCH}"
 
 # Calculate the download URL
 if [[ "$OSTYPE" == "linux-gnu"* ]]; then
     os="linux"
-    machine=$(uname -m)
-    case "$machine" in
+    case "$ARCH" in
       "x86_64")
         larch="x64"
         rosarch="linux-x86_64"
         nightly_rosarch="linux64"
+        ;;
+      "i686")
+        larch="x86"
+        rosarch="linux-i686"
+        nightly_rosarch="linux32"
         ;;
       "aarch64")
         larch="aarch64"
@@ -105,55 +112,59 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
         nightly_rosarch="linuxaarch64"
         ;;
       *)
-        buildkite-agent annotate --style error "Unhandled OS $OSTYPE/machine $machine combo"
+        buildkite-agent annotate --style error "Unhandled OS $OSTYPE/arch $ARCH combo"
         exit 1
         ;;
     esac
     ext="tar.gz"
 elif [[ "$OSTYPE" == "linux-musl"* ]]; then
     os="musl"
-    machine=$(uname -m)
-    case "$machine" in
+    case "$ARCH" in
       "x86_64")
         larch="x64"
         rosarch="musl-x86_64"
         nightly_rosarch="musl64"
         ;;
       *)
-        buildkite-agent annotate --style error "Unhandled OS $OSTYPE/machine $machine combo"
+        buildkite-agent annotate --style error "Unhandled OS $OSTYPE/arch $ARCH combo"
         exit 1
         ;;
     esac
     ext="tar.gz"
 elif [[ "$OSTYPE" == "darwin"* ]]; then
     os="mac"
-    machine=$(uname -m)
-    case "$machine" in
+    case "$ARCH" in
       "x86_64")
         larch="x64"
         rosarch="mac64"
+        nightly_rosarch="mac64"
         ;;
-      "arm64")
+      "arm64" | "aarch64")
         larch="aarch64"
         rosarch="macaarch64"
+        nightly_rosarch="macaarch64"
         ;;
       *)
-        buildkite-agent annotate --style error "Unhandled OS $OSTYPE/machine $machine combo"
+        buildkite-agent annotate --style error "Unhandled OS $OSTYPE/arch $ARCH combo"
         exit 1
         ;;
     esac
     ext="tar.gz"
 elif [[ "$OSTYPE" == "msys" ]]; then
     os="winnt"
-    machine=$(uname -m)
-    case "$machine" in
+    case "$ARCH" in
       "x86_64")
         larch="x64"
         rosarch="win64"
         nightly_rosarch="win64"
         ;;
+      "i686")
+        larch="x86"
+        rosarch="win32"
+        nightly_rosarch="win32"
+        ;;
       *)
-        buildkite-agent annotate --style error "Unhandled OS $OSTYPE/machine $machine combo"
+        buildkite-agent annotate --style error "Unhandled OS $OSTYPE/arch $ARCH combo"
         exit 1
         ;;
     esac
