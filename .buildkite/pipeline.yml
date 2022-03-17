@@ -1,3 +1,9 @@
+self_test_setup: &self_test_setup
+  post-checkout: |
+    mkdir -p .buildkite/plugins/julia
+    cp -Ra hooks plugin.yml README.md .buildkite/plugins/julia/
+  
+
 steps:
   - label: ":julia: :linux: Linux x86_64 installation test"
     agents:
@@ -5,6 +11,8 @@ steps:
       os: "linux"
       arch: "x86_64"
     plugins:
+      - improbable-eng/metahook:
+          <<: *self_test_setup
       # Install version 1.6 specifically
       - "./.buildkite/plugins/julia":
           version: "1.6"
@@ -26,10 +34,8 @@ steps:
       - staticfloat/sandbox#v1:
           rootfs_url: "https://github.com/JuliaCI/rootfs-images/releases/download/v5.5/agent_linux.i686.tar.gz"
           rootfs_treehash: "9335532ac5eb036ebbb0d5b7fa1df0968f8f0f2d"
-      # Smoosh python3 into our rootfs
       - improbable-eng/metahook:
-          pre-command:
-            apt update -y && apt install -y python3
+          <<: *self_test_setup
       # Override the "arch" parameter to install an i686 version inside of the sandbox
       - "./.buildkite/plugins/julia":
           version: "1"
@@ -46,6 +52,8 @@ steps:
       os: "macos"
       arch: "x86_64"
     plugins:
+      - improbable-eng/metahook:
+          <<: *self_test_setup
       # Test asking for a general `1` build
       - "./.buildkite/plugins/julia":
           version: 1
@@ -58,6 +66,8 @@ steps:
       os: "macos"
       arch: "x86_64"
     plugins:
+      - improbable-eng/metahook:
+          <<: *self_test_setup
       # Test asking for a `nightly` build
       - "./.buildkite/plugins/julia":
           version: nightly
@@ -70,6 +80,8 @@ steps:
       os: "macos"
       arch: "x86_64"
     plugins:
+      - improbable-eng/metahook:
+          <<: *self_test_setup
       # Test asking for a `nightly` build
       - "./.buildkite/plugins/julia":
           version: nightly
@@ -82,21 +94,40 @@ steps:
       os: "macos"
       arch: "aarch64"
     plugins:
+      - improbable-eng/metahook:
+          <<: *self_test_setup
       # Test asking for a general `1` build
       - "./.buildkite/plugins/julia":
           version: 1
     commands: |
       [[ "$$(julia --version)" == "julia version 1."* ]]
 
-  # I've contacted buildkite support to figure out why this is not working, they're investiating.
-  #- label: ":julia: :windows: Windows x86_64 installation test"
-  #  agents:
-  #    queue: "juliaecosystem"
-  #    os: "windows"
-  #    arch: "x86_64"
-  #  plugins:
-  #    # Test asking for a general `1` build
-  #    - ".\\.buildkite\\plugins\\julia":
-  #        version: 1
-  #  commands: |
-  #    [[ "$$(julia --version)" == "julia version 1."* ]]
+  - label: ":julia: :windows: Windows x86_64 installation test"
+    agents:
+      queue: "juliaecosystem"
+      os: "windows"
+      arch: "x86_64"
+    plugins:
+      - improbable-eng/metahook:
+          <<: *self_test_setup
+      # Test asking for a general `1` build
+      - "./.buildkite/plugins/julia":
+          version: 1
+    commands: |
+      [[ "$$(julia --version)" == "julia version 1."* ]]
+
+  - label: ":julia: :windows: Windows i686 installation test"
+    agents:
+      queue: "juliaecosystem"
+      os: "windows"
+      arch: "x86_64"
+    plugins:
+      - improbable-eng/metahook:
+          <<: *self_test_setup
+      # Test asking for a general `1` build
+      - "./.buildkite/plugins/julia":
+          version: 1
+          arch: "i686"
+    commands: |
+      [[ "$$(julia --version)" == "julia version 1."* ]]
+      [[ "$$(julia -E 'Sys.ARCH')" == ":i686" ]]
