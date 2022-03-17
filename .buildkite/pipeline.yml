@@ -115,3 +115,19 @@ steps:
           version: 1
     commands: |
       [[ "$$(julia --version)" == "julia version 1."* ]]
+
+  - label: ":julia: :windows: Windows i686 installation test"
+    agents:
+      queue: "juliaecosystem"
+      os: "windows"
+      arch: "x86_64"
+    plugins:
+      - improbable-eng/metahook:
+          <<: *self_test_setup
+      # Test asking for a general `1` build
+      - "./.buildkite/plugins/julia":
+          version: 1
+          arch: "i686"
+    commands: |
+      [[ "$$(julia --version)" == "julia version 1."* ]]
+      [[ "$$(julia -E 'Sys.ARCH')" == ":i686" ]]
