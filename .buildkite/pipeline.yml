@@ -44,6 +44,36 @@ steps:
       # Test that we pick up the latest version
       [[ "$$(julia --version)" == "julia version 1."* ]]
       [[ "$$(julia -E 'Sys.ARCH')" == ":i686" ]]
+      
+  - label: ":julia: :linux: Linux aarch64 installation test"
+    agents:
+      queue: "juliaecosystem"
+      os: "linux"
+      arch: "aarch64"
+    plugins:
+      - improbable-eng/metahook:
+          <<: *self_test_setup
+      - "./.buildkite/plugins/julia":
+          version: "1"
+    commands: |
+      # Test that we pick up version 1.X
+      [[ "$$(julia --version)" == "julia version 1."* ]]
+      [[ "$$(julia -E 'Sys.ARCH')" == ":aarch64" ]]
+      
+  - label: ":julia: :linux: Linux armv7l installation test"
+    agents:
+      queue: "juliaecosystem"
+      os: "linux"
+      arch: "armv7l"
+    plugins:
+      - improbable-eng/metahook:
+          <<: *self_test_setup
+      - "./.buildkite/plugins/julia":
+          version: "1"
+    commands: |
+      # Test that we pick up version 1.X
+      [[ "$$(julia --version)" == "julia version 1."* ]]
+      [[ "$$(julia -E 'Sys.ARCH')" == ":armv7l" ]]
 
 
   - label: ":julia: :macos: macOS x86_64 installation test"
@@ -57,20 +87,6 @@ steps:
       # Test asking for a general `1` build
       - "./.buildkite/plugins/julia":
           version: 1
-    commands: |
-      [[ "$$(julia --version)" == "julia version 1."* ]]
-
-  - label: ":julia: :macos: macOS x86_64 installation test"
-    agents:
-      queue: "juliaecosystem"
-      os: "macos"
-      arch: "x86_64"
-    plugins:
-      - improbable-eng/metahook:
-          <<: *self_test_setup
-      # Test asking for a `nightly` build
-      - "./.buildkite/plugins/julia":
-          version: nightly
     commands: |
       [[ "$$(julia --version)" == "julia version 1."* ]]
 

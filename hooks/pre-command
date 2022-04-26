@@ -111,6 +111,11 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
         rosarch="linux-aarch64"
         nightly_rosarch="linuxaarch64"
         ;;
+      "armv7l")
+        larch="armv7l"
+        rosarch="linux-armv7l"
+        nightly_rosarch="linuxarmv7l"
+        ;;
       *)
         buildkite-agent annotate --style error "Unhandled OS $OSTYPE/arch $ARCH combo"
         exit 1
