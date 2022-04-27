@@ -45,6 +45,20 @@ steps:
       [[ "$$(julia --version)" == "julia version 1."* ]]
       [[ "$$(julia -E 'Sys.ARCH')" == ":i686" ]]
 
+  - label: ":julia: :linux: Linux ppc64le installation test"
+    agents:
+      queue: "juliaecosystem"
+      os: "linux"
+      arch: "powerpc64le"
+    plugins:
+      - improbable-eng/metahook:
+          <<: *self_test_setup
+      # Test asking for a general `1` build
+      - "./.buildkite/plugins/julia":
+          version: 1
+    commands: |
+      [[ "$$(julia --version)" == "julia version 1."* ]]
+
 
   - label: ":julia: :macos: macOS x86_64 installation test"
     agents:
