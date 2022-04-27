@@ -74,20 +74,6 @@ steps:
     commands: |
       [[ "$$(julia --version)" == "julia version 1."* ]]
 
-  - label: ":julia: :macos: macOS x86_64 installation test"
-    agents:
-      queue: "juliaecosystem"
-      os: "macos"
-      arch: "x86_64"
-    plugins:
-      - improbable-eng/metahook:
-          <<: *self_test_setup
-      # Test asking for a `nightly` build
-      - "./.buildkite/plugins/julia":
-          version: nightly
-    commands: |
-      [[ "$$(julia --version)" == "julia version 1."* ]]
-
   - label: ":julia: :macos: macOS x86_64 nightly installation test"
     agents:
       queue: "juliaecosystem"
