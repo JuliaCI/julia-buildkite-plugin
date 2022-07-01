@@ -214,7 +214,7 @@ post_dl_mtime=$(stat_mtime "${archive_path}")
 # it to the path.
 unpack_dest=${CACHE_DIR}/julia_installs/$path
 echo "Installing location: ${unpack_dest}"
-if [[ ! -d "${unpack_dest}" || "${orig_mtime}" != "${post_dl_mtime}" ]]; then
+if [[ ! -d "${unpack_dest}/bin" || "${orig_mtime}" != "${post_dl_mtime}" ]]; then
     echo "New or updated installation detected, unpacking!"
     rm -rf "${unpack_dest}"
     mkdir -p "${unpack_dest}"
