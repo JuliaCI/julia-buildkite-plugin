@@ -21,6 +21,22 @@ steps:
       [[ "$$(julia --version)" == "julia version 1.6"* ]]
       [[ "$$(julia -E 'Sys.ARCH')" == ":x86_64" ]]
 
+  - label: ":julia: :linux: Linux x86_64 specific version installation test"
+    agents:
+      queue: "juliaecosystem"
+      os: "linux"
+      arch: "x86_64"
+    plugins:
+      - improbable-eng/metahook:
+          <<: *self_test_setup
+      # Install version 1.6.0 specifically, which is _not_ the most recent LTS
+      # release to prevent testing downloading the 'latest' version
+      - "./.buildkite/plugins/julia":
+          version: "1.6.0"
+    commands: |
+      # Test that we pick up version 1.6.0
+      [[ "$$(julia --version)" == "julia version 1.6.0" ]]
+
   - label: ":julia: :linux: Linux i686 installation test"
     agents:
       queue: "juliaecosystem"
@@ -74,6 +90,22 @@ steps:
     commands: |
       [[ "$$(julia --version)" == "julia version 1."* ]]
 
+  - label: ":julia: :macos: macOS x86_64 specific version installation test"
+    agents:
+      queue: "juliaecosystem"
+      os: "macos"
+      arch: "x86_64"
+    plugins:
+      - improbable-eng/metahook:
+          <<: *self_test_setup
+      # Install version 1.6.1 specifically, which is _not_ the most recent LTS
+      # release to prevent testing downloading the 'latest' version
+      - "./.buildkite/plugins/julia":
+          version: "1.6.1"
+    commands: |
+      # Test that we pick up version 1.6.1
+      [[ "$$(julia --version)" == "julia version 1.6.1" ]]
+
   - label: ":julia: :macos: macOS x86_64 nightly installation test"
     agents:
       queue: "juliaecosystem"
@@ -115,6 +147,22 @@ steps:
           version: 1
     commands: |
       [[ "$$(julia --version)" == "julia version 1."* ]]
+
+  - label: ":julia: :windows: Windows x86_64 specific version installation test"
+    agents:
+      queue: "juliaecosystem"
+      os: "windows"
+      arch: "x86_64"
+    plugins:
+      - improbable-eng/metahook:
+          <<: *self_test_setup
+      # Install version 1.6.2 specifically, which is _not_ the most recent LTS
+      # release to prevent testing downloading the 'latest' version
+      - "./.buildkite/plugins/julia":
+          version: "1.6.2"
+    commands: |
+      # Test that we pick up version 1.6.2
+      [[ "$$(julia --version)" == "julia version 1.6.2" ]]
 
   - label: ":julia: :windows: Windows i686 installation test"
     agents:
