@@ -189,13 +189,22 @@ elif [[ "$JULIA_VERSION" =~ ^(.+)-nightly$ ]]; then # for example, `version: '1.
     path="$path/$release/julia-latest-$nightly_rosarch"
 else
     bucket="julialang-s3"
+    # Minor version URLs contain `-latest` in their URLs
+    postfix="-latest"
     if [[ $JULIA_VERSION =~ ^-?[0-9]+$ ]]; then     # for example, `version: '1'` or `version: '234'`
         release="$("${PYTHON}" $(dirname $BASH_SOURCE)/expand-major-only.py "${JULIA_VERSION}")"
-    else
+    elif [[ $JULIA_VERSION =~ ^-?[0-9]+\.[0-9]+$ ]]; then
         release="${JULIA_VERSION}"                  # for example, `version: '123.456'`
+    elif [[ $JULIA_VERSION =~ ^-?[0-9]+(\.[0-9]+){2}$ ]]; then
+        release="${JULIA_VERSION}"                  # for example, `version: '1.2.3'`
+        # Exact versions do _not_ contain `-latest` in their URL
+        postfix=""
+    else
+        buildkite-agent annotate --style error "Unsupported version $JULIA_VERSION"
+        exit 1
     fi
-    # TODO: support for a fully-specified version, e.g. 1.5.3
-    path="$path/$release/julia-$release-latest-$rosarch"
+    short_release="$(cut -d '.' -f 1,2 <<< "$release")"
+    path="$path/$short_release/julia-$release$postfix-$rosarch"
 fi
 url="https://$bucket.julialang.org/$path.$ext"
 
