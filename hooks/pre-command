@@ -142,12 +142,12 @@ elif [[ "$OSTYPE" == "darwin"* ]]; then
       "x86_64")
         larch="x64"
         rosarch="mac64"
-        nightly_rosarch="macos-x86_64"
+        nightly_rosarch="mac64"
         ;;
       "arm64" | "aarch64")
         larch="aarch64"
         rosarch="macaarch64"
-        nightly_rosarch="macos-aarch64"
+        nightly_rosarch="macaarch64"
         ;;
       *)
         buildkite-agent annotate --style error "Unhandled OS $OSTYPE/arch $ARCH combo"
