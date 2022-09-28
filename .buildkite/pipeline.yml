@@ -15,8 +15,14 @@ steps:
           AGENT_ARCH="x86_64"
         fi
 
+        # We have a special pipeline for i686
+        PIPELINE=".buildkite/run_tests.yml"
+        if [[ "$${ARCH}" == "i686" ]]; then
+          PIPELINE=".buildkite/run_tests_$${AGENT_OS}32.yml"
+        fi
+
         for JULIA_VERSION in $$2; do
-          buildkite-agent pipeline upload .buildkite/run_tests.yml
+          buildkite-agent pipeline upload "$${PIPELINE}"
         done
       }
 
