@@ -1,181 +1,46 @@
-self_test_setup: &self_test_setup
-  post-checkout: |
-    mkdir -p .buildkite/plugins/julia
-    cp -Ra hooks plugin.yml README.md .buildkite/plugins/julia/
-  
-
 steps:
-  - label: ":julia: :linux: Linux x86_64 installation test"
+  - label: ":rocket: Launch test matrix"
     agents:
       queue: "juliaecosystem"
-      os: "linux"
-      arch: "x86_64"
-    plugins:
-      - staticfloat/metahook#sf/windows_backslashes:
-          <<: *self_test_setup
-      # Install version 1.6 specifically
-      - "./.buildkite/plugins/julia":
-          version: "1.6"
     commands: |
-      # Test that we pick up version 1.6
-      [[ "$$(julia --version)" == "julia version 1.6"* ]]
-      [[ "$$(julia -E 'Sys.ARCH')" == ":x86_64" ]]
+      # These variables are available for templating in our child pipelines
+      export JULIA_VERSION ARCH AGENT_OS AGENT_ARCH
 
-  - label: ":julia: :linux: Linux x86_64 specific version installation test"
-    agents:
-      queue: "juliaecosystem"
-      os: "linux"
-      arch: "x86_64"
-    plugins:
-      - staticfloat/metahook#sf/windows_backslashes:
-          <<: *self_test_setup
-      # Install version 1.6.0 specifically, which is _not_ the most recent LTS
-      # release to prevent testing downloading the 'latest' version
-      - "./.buildkite/plugins/julia":
-          version: "1.6.0"
-    commands: |
-      # Test that we pick up version 1.6.0
-      [[ "$$(julia --version)" == "julia version 1.6.0" ]]
+      function upload_pipelines() {
+        ARCH="$$1"
+        AGENT_ARCH="$${ARCH}"
 
-  - label: ":julia: :linux: Linux i686 installation test"
-    agents:
-      queue: "juliaecosystem"
-      os: "linux"
-      arch: "x86_64"
-    plugins:
-      # Install Julia v1 so we can use Sandbox
-      - JuliaCI/julia:
-          version: "1"
-      # Use Sandbox to run inside of a 32-bit compatible rootfs
-      - staticfloat/sandbox#v1:
-          rootfs_url: "https://github.com/JuliaCI/rootfs-images/releases/download/v5.5/agent_linux.i686.tar.gz"
-          rootfs_treehash: "9335532ac5eb036ebbb0d5b7fa1df0968f8f0f2d"
-      - staticfloat/metahook#sf/windows_backslashes:
-          <<: *self_test_setup
-      # Override the "arch" parameter to install an i686 version inside of the sandbox
-      - "./.buildkite/plugins/julia":
-          version: "1"
-          arch: "i686"
-    commands: |
-      # Test that we pick up the latest version
-      [[ "$$(julia --version)" == "julia version 1."* ]]
-      [[ "$$(julia -E 'Sys.ARCH')" == ":i686" ]]
+        # All our i686 jobs that run on x86_64 hardware
+        if [[ "$${ARCH}" == "i686" ]]; then
+          AGENT_ARCH="x86_64"
+        fi
 
-  - label: ":julia: :linux: Linux ppc64le installation test"
-    agents:
-      queue: "juliaecosystem"
-      os: "linux"
-      arch: "powerpc64le"
-    plugins:
-      - staticfloat/metahook#sf/windows_backslashes:
-          <<: *self_test_setup
-      # Test v1.7, until we have v1.x versions available for ppc64le again
-      - "./.buildkite/plugins/julia":
-          version: 1.7
-    commands: |
-      [[ "$$(julia --version)" == "julia version 1."* ]]
+        # We have a special pipeline for i686
+        PIPELINE=".buildkite/run_tests.yml"
+        if [[ "$${ARCH}" == "i686" ]]; then
+          PIPELINE=".buildkite/run_tests_$${AGENT_OS}32.yml"
+        fi
 
+        for JULIA_VERSION in $$2; do
+          buildkite-agent pipeline upload "$${PIPELINE}"
+        done
+      }
 
-  - label: ":julia: :macos: macOS x86_64 installation test"
-    agents:
-      queue: "juliaecosystem"
-      os: "macos"
-      arch: "x86_64"
-    plugins:
-      - staticfloat/metahook#sf/windows_backslashes:
-          <<: *self_test_setup
-      # Test asking for a general `1` build
-      - "./.buildkite/plugins/julia":
-          version: 1
-    commands: |
-      [[ "$$(julia --version)" == "julia version 1."* ]]
+      # Launch Linux jobs
+      AGENT_OS="linux"
+      upload_pipelines x86_64  "1 1.6.0 1.8 nightly"
+      upload_pipelines i686    "1 nightly"
+      upload_pipelines aarch64 "1 nightly"
 
-  - label: ":julia: :macos: macOS x86_64 specific version installation test"
-    agents:
-      queue: "juliaecosystem"
-      os: "macos"
-      arch: "x86_64"
-    plugins:
-      - staticfloat/metahook#sf/windows_backslashes:
-          <<: *self_test_setup
-      # Install version 1.6.1 specifically, which is _not_ the most recent LTS
-      # release to prevent testing downloading the 'latest' version
-      - "./.buildkite/plugins/julia":
-          version: "1.6.1"
-    commands: |
-      # Test that we pick up version 1.6.1
-      [[ "$$(julia --version)" == "julia version 1.6.1" ]]
+      # We don't have a 1.8.X build for ppc64le, so install 1.7 and nightly
+      upload_pipelines powerpc64le "1.7 nightly"
 
-  - label: ":julia: :macos: macOS x86_64 nightly installation test"
-    agents:
-      queue: "juliaecosystem"
-      os: "macos"
-      arch: "x86_64"
-    plugins:
-      - staticfloat/metahook#sf/windows_backslashes:
-          <<: *self_test_setup
-      # Test asking for a `nightly` build
-      - "./.buildkite/plugins/julia":
-          version: nightly
-    commands: |
-      [[ "$$(julia --version)" == "julia version 1."* ]]
+      # Launch macOS jobs
+      AGENT_OS="macos"
+      upload_pipelines x86_64  "1 nightly"
+      upload_pipelines aarch64 "1 nightly"
 
-  - label: ":julia: :macos: macOS aarch64 installation test"
-    agents:
-      queue: "juliaecosystem"
-      os: "macos"
-      arch: "aarch64"
-    plugins:
-      - staticfloat/metahook#sf/windows_backslashes:
-          <<: *self_test_setup
-      # Test asking for a general `1` build
-      - "./.buildkite/plugins/julia":
-          version: 1
-    commands: |
-      [[ "$$(julia --version)" == "julia version 1."* ]]
-
-  - label: ":julia: :windows: Windows x86_64 installation test"
-    agents:
-      queue: "juliaecosystem"
-      os: "windows"
-      arch: "x86_64"
-    plugins:
-      - staticfloat/metahook#sf/windows_backslashes:
-          <<: *self_test_setup
-      # Test asking for a general `1` build
-      - "./.buildkite/plugins/julia":
-          version: 1
-    commands: |
-      [[ "$$(julia --version)" == "julia version 1."* ]]
-
-  - label: ":julia: :windows: Windows x86_64 specific version installation test"
-    agents:
-      queue: "juliaecosystem"
-      os: "windows"
-      arch: "x86_64"
-    plugins:
-      - staticfloat/metahook#sf/windows_backslashes:
-          <<: *self_test_setup
-      # Install version 1.6.2 specifically, which is _not_ the most recent LTS
-      # release to prevent testing downloading the 'latest' version
-      - "./.buildkite/plugins/julia":
-          version: "1.6.2"
-    commands: |
-      # Test that we pick up version 1.6.2
-      [[ "$$(julia --version)" == "julia version 1.6.2" ]]
-
-  - label: ":julia: :windows: Windows i686 installation test"
-    agents:
-      queue: "juliaecosystem"
-      os: "windows"
-      arch: "x86_64"
-    plugins:
-      - staticfloat/metahook#sf/windows_backslashes:
-          <<: *self_test_setup
-      # Test asking for a general `1` build
-      - "./.buildkite/plugins/julia":
-          version: 1
-          arch: "i686"
-    commands: |
-      [[ "$$(julia --version)" == "julia version 1."* ]]
-      [[ "$$(julia -E 'Sys.ARCH')" == ":i686" ]]
+      # Launch Windows jobs
+      AGENT_OS="windows"
+      upload_pipelines x86_64 "1 nightly"
+      upload_pipelines i686   "1 nightly"

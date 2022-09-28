@@ -1,0 +1,27 @@
+self_test_setup: &self_test_setup
+  post-checkout: |
+    mkdir -p .buildkite/plugins/julia
+    cp -Ra hooks plugin.yml README.md .buildkite/plugins/julia/
+  
+steps:
+  - label: ":julia: ${AGENT_OS?} ${ARCH?} ${JULIA_VERSION?}"
+    agents:
+      queue: "juliaecosystem"
+      os: "${AGENT_OS?}"
+      arch: "${AGENT_ARCH?}"
+    plugins:
+      - staticfloat/metahook#sf/windows_backslashes:
+          <<: *self_test_setup
+      - "./.buildkite/plugins/julia":
+          version: "${JULIA_VERSION?}"
+          arch: "i686"
+    commands: |
+      # If we asked for a nightly version, just check that we got a `1.X`:
+      CHECK_VERSION="${JULIA_VERSION?}"
+      if [[ "${JULIA_VERSION?}" == "nightly" ]]; then
+        CHECK_VERSION="1."
+      fi
+      [[ "$$(julia --version)" == "julia version $${CHECK_VERSION}"* ]]
+
+      # Always check we got the right architecture
+      [[ "$$(julia -E 'Sys.ARCH')" == ":${ARCH?}" ]]
