@@ -95,26 +95,31 @@ echo "--- :julia: Downloading Julia ${JULIA_VERSION} for arch ${ARCH}"
 # Calculate the download URL
 if [[ "$OSTYPE" == "linux-gnu"* ]]; then
     os="linux"
+    nightly_os="linux"
     case "$ARCH" in
       "x86_64")
         larch="x64"
         rosarch="linux-x86_64"
-        nightly_rosarch="linux64"
+        nightly_larch="x86_64"
+        nightly_rosarch="linux-x86_64"
         ;;
       "i686")
         larch="x86"
         rosarch="linux-i686"
-        nightly_rosarch="linux32"
+        nightly_larch="i686"
+        nightly_rosarch="linux-i686"
         ;;
       "aarch64")
         larch="aarch64"
         rosarch="linux-aarch64"
+        nightly_larch="aarch64"
         nightly_rosarch="linux-aarch64"
         ;;
       "powerpc64le"|"ppc64le")
         larch="ppc64le"
         rosarch="linux-ppc64le"
-        nightly_rosarch="linux-ppc64le"
+        nightly_larch="powerpc64le"
+        nightly_rosarch="linux-powerpc64le"
         ;;
       *)
         buildkite-agent annotate --style error "Unhandled OS $OSTYPE/arch $ARCH combo"
@@ -124,10 +129,12 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
     ext="tar.gz"
 elif [[ "$OSTYPE" == "linux-musl"* ]]; then
     os="musl"
+    nightly_os="musl"
     case "$ARCH" in
       "x86_64")
         larch="x64"
         rosarch="musl-x86_64"
+        nightly_larch="x86_64"
         nightly_rosarch="musl-x86_64"
         ;;
       *)
@@ -138,16 +145,19 @@ elif [[ "$OSTYPE" == "linux-musl"* ]]; then
     ext="tar.gz"
 elif [[ "$OSTYPE" == "darwin"* ]]; then
     os="mac"
+    nightly_os="macos"
     case "$ARCH" in
       "x86_64")
         larch="x64"
         rosarch="mac64"
-        nightly_rosarch="mac64"
+        nightly_larch="x86_64"
+        nightly_rosarch="macos-x86_64"
         ;;
       "arm64" | "aarch64")
         larch="aarch64"
         rosarch="macaarch64"
-        nightly_rosarch="macaarch64"
+        nightly_larch="aarch64"
+        nightly_rosarch="macos-aarch64"
         ;;
       *)
         buildkite-agent annotate --style error "Unhandled OS $OSTYPE/arch $ARCH combo"
@@ -157,15 +167,18 @@ elif [[ "$OSTYPE" == "darwin"* ]]; then
     ext="tar.gz"
 elif [[ "$OSTYPE" == "msys" ]]; then
     os="winnt"
+    nightly_os="winnt"
     case "$ARCH" in
       "x86_64")
         larch="x64"
         rosarch="win64"
+        nightly_larch="x64"
         nightly_rosarch="win64"
         ;;
       "i686")
         larch="x86"
         rosarch="win32"
+        nightly_larch="x86"
         nightly_rosarch="win32"
         ;;
       *)
@@ -182,11 +195,11 @@ fi
 path="bin/$os/$larch"
 if [[ "$JULIA_VERSION" == "nightly" ]]; then        # `version: 'nightly'`
     bucket="julialangnightlies-s3"
-    path="$path/julia-latest-$nightly_rosarch"
+    path="bin/$nightly_os/$nightly_larch/julia-latest-$nightly_rosarch"
 elif [[ "$JULIA_VERSION" =~ ^(.+)-nightly$ ]]; then # for example, `version: '1.6-nightly'`
     bucket="julialangnightlies-s3"
     release="${BASH_REMATCH[1]}"
-    path="$path/$release/julia-latest-$nightly_rosarch"
+    path="bin/$nightly_os/$nightly_larch/$release/julia-latest-$nightly_rosarch"
 else
     bucket="julialang-s3"
     # Minor version URLs contain `-latest` in their URLs
