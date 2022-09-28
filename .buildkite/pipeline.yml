@@ -33,7 +33,7 @@ steps:
       upload_pipelines aarch64 "1 nightly"
 
       # We don't have a 1.8.X build for ppc64le, so install 1.7 and nightly
-      upload_pipelines ppc64le "1.7 nightly"
+      upload_pipelines powerpc64le "1.7 nightly"
 
       # Launch macOS jobs
       AGENT_OS="macos"
