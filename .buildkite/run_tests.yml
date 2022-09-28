@@ -4,7 +4,7 @@ self_test_setup: &self_test_setup
     cp -Ra hooks plugin.yml README.md .buildkite/plugins/julia/
   
 steps:
-  - label: ":julia: :linux: Linux ${ARCH?} installation test"
+  - label: ":julia: ${AGENT_OS?} ${ARCH?} ${JULIA_VERSION?}"
     agents:
       queue: "juliaecosystem"
       os: "${AGENT_OS?}"
