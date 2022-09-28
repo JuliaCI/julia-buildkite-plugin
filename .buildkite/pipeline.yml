@@ -11,7 +11,7 @@ steps:
       os: "linux"
       arch: "x86_64"
     plugins:
-      - improbable-eng/metahook:
+      - staticfloat/metahook#sf/windows_backslashes:
           <<: *self_test_setup
       # Install version 1.6 specifically
       - "./.buildkite/plugins/julia":
@@ -27,7 +27,7 @@ steps:
       os: "linux"
       arch: "x86_64"
     plugins:
-      - improbable-eng/metahook:
+      - staticfloat/metahook#sf/windows_backslashes:
           <<: *self_test_setup
       # Install version 1.6.0 specifically, which is _not_ the most recent LTS
       # release to prevent testing downloading the 'latest' version
@@ -50,7 +50,7 @@ steps:
       - staticfloat/sandbox#v1:
           rootfs_url: "https://github.com/JuliaCI/rootfs-images/releases/download/v5.5/agent_linux.i686.tar.gz"
           rootfs_treehash: "9335532ac5eb036ebbb0d5b7fa1df0968f8f0f2d"
-      - improbable-eng/metahook:
+      - staticfloat/metahook#sf/windows_backslashes:
           <<: *self_test_setup
       # Override the "arch" parameter to install an i686 version inside of the sandbox
       - "./.buildkite/plugins/julia":
@@ -67,7 +67,7 @@ steps:
       os: "linux"
       arch: "powerpc64le"
     plugins:
-      - improbable-eng/metahook:
+      - staticfloat/metahook#sf/windows_backslashes:
           <<: *self_test_setup
       # Test v1.7, until we have v1.x versions available for ppc64le again
       - "./.buildkite/plugins/julia":
@@ -82,7 +82,7 @@ steps:
       os: "macos"
       arch: "x86_64"
     plugins:
-      - improbable-eng/metahook:
+      - staticfloat/metahook#sf/windows_backslashes:
           <<: *self_test_setup
       # Test asking for a general `1` build
       - "./.buildkite/plugins/julia":
@@ -96,7 +96,7 @@ steps:
       os: "macos"
       arch: "x86_64"
     plugins:
-      - improbable-eng/metahook:
+      - staticfloat/metahook#sf/windows_backslashes:
           <<: *self_test_setup
       # Install version 1.6.1 specifically, which is _not_ the most recent LTS
       # release to prevent testing downloading the 'latest' version
@@ -112,7 +112,7 @@ steps:
       os: "macos"
       arch: "x86_64"
     plugins:
-      - improbable-eng/metahook:
+      - staticfloat/metahook#sf/windows_backslashes:
           <<: *self_test_setup
       # Test asking for a `nightly` build
       - "./.buildkite/plugins/julia":
@@ -126,7 +126,7 @@ steps:
       os: "macos"
       arch: "aarch64"
     plugins:
-      - improbable-eng/metahook:
+      - staticfloat/metahook#sf/windows_backslashes:
           <<: *self_test_setup
       # Test asking for a general `1` build
       - "./.buildkite/plugins/julia":
@@ -140,7 +140,7 @@ steps:
       os: "windows"
       arch: "x86_64"
     plugins:
-      - improbable-eng/metahook:
+      - staticfloat/metahook#sf/windows_backslashes:
           <<: *self_test_setup
       # Test asking for a general `1` build
       - "./.buildkite/plugins/julia":
@@ -154,7 +154,7 @@ steps:
       os: "windows"
       arch: "x86_64"
     plugins:
-      - improbable-eng/metahook:
+      - staticfloat/metahook#sf/windows_backslashes:
           <<: *self_test_setup
       # Install version 1.6.2 specifically, which is _not_ the most recent LTS
       # release to prevent testing downloading the 'latest' version
@@ -170,7 +170,7 @@ steps:
       os: "windows"
       arch: "x86_64"
     plugins:
-      - improbable-eng/metahook:
+      - staticfloat/metahook#sf/windows_backslashes:
           <<: *self_test_setup
       # Test asking for a general `1` build
       - "./.buildkite/plugins/julia":
