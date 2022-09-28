@@ -99,12 +99,12 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
       "x86_64")
         larch="x64"
         rosarch="linux-x86_64"
-        nightly_rosarch="linux-x86_64"
+        nightly_rosarch="linux64"
         ;;
       "i686")
         larch="x86"
         rosarch="linux-i686"
-        nightly_rosarch="linux-i686"
+        nightly_rosarch="linux32"
         ;;
       "aarch64")
         larch="aarch64"
