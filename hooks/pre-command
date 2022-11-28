@@ -186,7 +186,7 @@ elif [[ "$OSTYPE" == "msys" ]]; then
         exit 1
         ;;
     esac
-    ext="zip"
+    ext="tar.gz"
 else
     buildkite-agent annotate --style error "Unhandled OS $OSTYPE"
     exit 1
