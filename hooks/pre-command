@@ -243,6 +243,7 @@ if [[ ! -d "${unpack_dest}/bin" || "${orig_mtime}" != "${post_dl_mtime}" ]]; the
     if [[ "${archive_path}" == *.tar.gz ]]; then
       tar -xof "${archive_path}" --strip-components=1 -C "${unpack_dest}"
     elif [[ "${archive_path}" == *.zip ]]; then
+      which -a unzip
       unzip -q "${archive_path}" -d "${unpack_dest}"
       mv "${unpack_dest}"/julia-*/* "${unpack_dest}"
       rmdir "${unpack_dest}"/julia-*
