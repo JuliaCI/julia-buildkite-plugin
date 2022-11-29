@@ -226,6 +226,7 @@ url="https://$bucket.julialang.org/$path.$ext"
 # remote server and compares against the local timestamp.
 echo "Source URL: $url"
 archive_path="${CACHE_DIR}/downloads/$path.$ext"
+echo "Download cache: ${archive_path}"
 mkdir -p "$(dirname ${archive_path})"
 orig_mtime=$(stat_mtime "${archive_path}" 2>/dev/null || true)
 download "${url}" "${archive_path}"
