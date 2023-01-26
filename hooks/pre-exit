@@ -64,7 +64,7 @@ if [[ "${BUILDKITE_PLUGIN_JULIA_ISOLATED_DEPOT:-true}" == "true" ]]; then
     DEPOT_SIZE_HUMAN=$(du "${DU_APPARENT_SIZE_FLAG}" -h -s "${JULIA_DEPOT_PATH}" | cut -f 1)
     # `-k` gives consistently the number of kilobytes on both macOS and Linux, without it
     # BSD `du` would give the number of multiples of 512 bytes.
-    DEPOT_SIZE=$(($(du "${DU_APPARENT_SIZE_FLAG}" -k -s -B 1 "${JULIA_DEPOT_PATH}" | cut -f 1) * 1024))
+    DEPOT_SIZE=$(($(du "${DU_APPARENT_SIZE_FLAG}" -k -s "${JULIA_DEPOT_PATH}" | cut -f 1) * 1024))
     DEPOT_HARD_LIMIT="${BUILDKITE_PLUGIN_JULIA_DEPOT_HARD_SIZE_LIMIT:-21474836480}" # 21474836480 bytes = 20 GiB
     echo "The depot size is: ${DEPOT_SIZE_HUMAN}"
     if [[ ${DEPOT_SIZE} -gt ${DEPOT_HARD_LIMIT} ]]; then
