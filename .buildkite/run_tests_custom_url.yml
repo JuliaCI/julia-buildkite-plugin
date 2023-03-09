@@ -15,6 +15,7 @@ steps:
       - "./.buildkite/plugins/julia":
           # version is ignored when `url` is provided
           version: "https://julialang-s3.julialang.org/bin/linux/x64/1.9/julia-1.9.0-rc1-linux-x86_64.tar.gz"
+          debug_plugin: "true"
     commands: |
       # If we asked for a nightly version, just check that we got a `1.X`:
       [[ "$$(julia --version)" == "julia version 1.9.0-rc1" ]]
