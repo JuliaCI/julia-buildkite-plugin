@@ -17,6 +17,12 @@ CACHE_DIR=${BUILDKITE_PLUGIN_JULIA_CACHE_DIR:-${HOME}/.cache/julia-buildkite-plu
 # The version of Julia we're downloading
 JULIA_VERSION="${BUILDKITE_PLUGIN_JULIA_VERSION}"
 
+# Did we get a julia version that's actually a URL?
+if [[ "${JULIA_VERSION}" == "https://"* ]]; then
+    CUSTOM_URL="${JULIA_VERSION#https://*}"
+    JULIA_VERSION="<custom url>"
+fi
+
 # If the user has asked for an isolated depot, we will create one inside of `CACHE_DIR`
 # that is specific to the current pipeline; use `PERSIST_DEPOT_DIRS` to keep some directories
 # around between invocations; by default we persist content-addressed directories such as
@@ -92,7 +98,7 @@ ARCH="${BUILDKITE_PLUGIN_JULIA_ARCH:-$(uname -m)}"
 # and after download.
 echo "--- :julia: Downloading Julia ${JULIA_VERSION} for arch ${ARCH}"
 
-# Calculate the download URL
+# Calculate the download URL, unless the user is asking for a custom URL:
 if [[ "$OSTYPE" == "linux-gnu"* ]]; then
     os="linux"
     nightly_os="linux"
@@ -193,15 +199,22 @@ else
 fi
 
 path="bin/$os/$larch"
-if [[ "$JULIA_VERSION" == "nightly" ]]; then        # `version: 'nightly'`
-    bucket="julialangnightlies-s3"
+if [[ -n "${CUSTOM_URL:-}" ]]; then
+    echo "Overriding version selection, using custom URL '${CUSTOM_URL}'"
+
+    # Parse `CUSTOM_URL` into `bucket_host` and `path` pieces, trimming `${ext}` off the end.
+    bucket_host="${CUSTOM_URL%%/*}"
+    path="${CUSTOM_URL#*/}"
+    path="${path%%.${ext}}"
+elif [[ "$JULIA_VERSION" == "nightly" ]]; then        # `version: 'nightly'`
+    bucket_host="julialangnightlies-s3.julialang.org"
     path="bin/$nightly_os/$nightly_larch/julia-latest-$nightly_rosarch"
 elif [[ "$JULIA_VERSION" =~ ^(.+)-nightly$ ]]; then # for example, `version: '1.6-nightly'`
-    bucket="julialangnightlies-s3"
+    bucket_host="julialangnightlies-s3.julialang.org"
     release="${BASH_REMATCH[1]}"
     path="bin/$nightly_os/$nightly_larch/$release/julia-latest-$nightly_rosarch"
 else
-    bucket="julialang-s3"
+    bucket_host="julialang-s3.julialang.org"
     # Minor version URLs contain `-latest` in their URLs
     postfix="-latest"
     if [[ $JULIA_VERSION =~ ^-?[0-9]+$ ]]; then     # for example, `version: '1'` or `version: '234'`
@@ -219,7 +232,7 @@ else
     short_release="$(cut -d '.' -f 1,2 <<< "$release")"
     path="$path/$short_release/julia-$release$postfix-$rosarch"
 fi
-url="https://$bucket.julialang.org/$path.$ext"
+url="https://$bucket_host/$path.$ext"
 
 # Download Julia to our cache directory.  If the file already exists, this may take
 # only a few hundred milliseconds, as it checks the timestamp of the file on the
