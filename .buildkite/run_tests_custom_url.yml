@@ -1,0 +1,23 @@
+self_test_setup: &self_test_setup
+  post-checkout: |
+    mkdir -p .buildkite/plugins/julia
+    cp -Ra hooks plugin.yml README.md .buildkite/plugins/julia/
+
+steps:
+  - label: ":julia: linux x86_64 custom URL"
+    agents:
+      queue: "juliaecosystem"
+      os: "linux"
+      arch: "x86_64"
+    plugins:
+      - staticfloat/metahook#sf/windows_backslashes:
+          <<: *self_test_setup
+      - "./.buildkite/plugins/julia":
+          # version is ignored when `url` is provided
+          version: "https://julialang-s3.julialang.org/bin/linux/x64/1.9/julia-1.9.0-rc1-linux-x86_64.tar.gz"
+    commands: |
+      # If we asked for a nightly version, just check that we got a `1.X`:
+      [[ "$$(julia --version)" == "julia version 1.9.0-rc1" ]]
+
+      # Always check we got the right architecture
+      [[ "$$(julia -E 'Sys.ARCH')" == ":x86_64" ]]

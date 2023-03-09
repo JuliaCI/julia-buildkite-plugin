@@ -44,3 +44,6 @@ steps:
       AGENT_OS="windows"
       upload_pipelines x86_64 "1 nightly"
       upload_pipelines i686   "1 nightly"
+
+      # Launch a custom URL tests
+      buildkite-agent pipeline upload ".buildkite/run_tests_custom_url.yml"
