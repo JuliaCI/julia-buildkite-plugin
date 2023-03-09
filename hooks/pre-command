@@ -8,6 +8,7 @@ shopt -s extglob
 ## If we're running in debug mode, be REALLY VERBOSE:
 if [[ "${BUILDKITE_PLUGIN_JULIA_DEBUG_PLUGIN:-false}" == "true" ]]; then
     set -x
+    PS4="> "
 fi
 
 # Where Julia will be downloaded/extracted to, and where we'll store our depots and whatnot

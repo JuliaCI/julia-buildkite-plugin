@@ -21,6 +21,7 @@ steps:
       - "./.buildkite/plugins/julia":
           version: "${JULIA_VERSION?}"
           arch: "i686"
+          debug_plugin: "true"
     commands: |
       # If we asked for a nightly version, just check that we got a `1.X`:
       CHECK_VERSION="${JULIA_VERSION?}"
