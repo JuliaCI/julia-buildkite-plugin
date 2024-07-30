@@ -14,12 +14,15 @@ steps:
         if [[ "$${ARCH}" == "i686" ]]; then
           AGENT_ARCH="x86_64"
         fi
+        if [[ "$${ARCH}" == "arm" ]]; then
+          AGENT_ARCH="armv7l"
+        fi
 
         # We have a special pipeline for i686
         PIPELINE=".buildkite/run_tests.yml"
         if [[ "$${ARCH}" == "i686" ]]; then
           PIPELINE=".buildkite/run_tests_$${AGENT_OS}32.yml"
-        elif [[ "$${ARCH}" == "armv7l" ]]; then
+        elif [[ "$${ARCH}" == "arm" ]]; then
           PIPELINE=".buildkite/run_tests_$${AGENT_OS}_armv7l.yml"
         fi
 
@@ -35,7 +38,7 @@ steps:
       upload_pipelines aarch64 "1 nightly"
 
       # Waiting for the armv7l build pipeline to be fixed so we can get newer builds
-      upload_pipelines armv7l  "1.7"
+      upload_pipelines arm  "1.7"
 
       # We don't have a 1.8.X build for ppc64le, so install 1.7 and nightly
       upload_pipelines powerpc64le "1.7 nightly"
