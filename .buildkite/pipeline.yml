@@ -19,6 +19,8 @@ steps:
         PIPELINE=".buildkite/run_tests.yml"
         if [[ "$${ARCH}" == "i686" ]]; then
           PIPELINE=".buildkite/run_tests_$${AGENT_OS}32.yml"
+        elif [[ "$${ARCH}" == "armv7l" ]]; then
+          PIPELINE=".buildkite/run_tests_$${AGENT_OS}_armv7l.yml"
         fi
 
         for JULIA_VERSION in $$2; do
@@ -31,6 +33,9 @@ steps:
       upload_pipelines x86_64  "1 1.6.0 1.8 nightly"
       upload_pipelines i686    "1 nightly"
       upload_pipelines aarch64 "1 nightly"
+
+      # Waiting for the armv7l build pipeline to be fixed so we can get newer builds
+      upload_pipelines armv7l  "1.7"
 
       # We don't have a 1.8.X build for ppc64le, so install 1.7 and nightly
       upload_pipelines powerpc64le "1.7 nightly"

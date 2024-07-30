@@ -122,6 +122,11 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
         nightly_larch="aarch64"
         nightly_rosarch="linux-aarch64"
         ;;
+      "armv7l")
+        larch="armv7l"
+        rosarch="linux-armv7l"
+        nightly_rosarch="linuxarmv7l"
+        ;;
       "powerpc64le"|"ppc64le")
         larch="ppc64le"
         rosarch="linux-ppc64le"
