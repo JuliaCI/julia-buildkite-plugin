@@ -2,7 +2,7 @@ self_test_setup: &self_test_setup
   post-checkout: |
     mkdir -p .buildkite/plugins/julia
     cp -Ra hooks plugin.yml README.md .buildkite/plugins/julia/
-  
+
 steps:
   - label: ":julia: ${AGENT_OS?} ${ARCH?} ${JULIA_VERSION?}"
     agents:
@@ -12,7 +12,8 @@ steps:
     plugins:
       # Install Julia v1 so we can use Sandbox
       - JuliaCI/julia:
-          version: "1"
+          version: "1.7"
+          arch: "armv7l"
       - staticfloat/sandbox#v1:
          rootfs_url: "https://github.com/JuliaCI/rootfs-images/releases/download/v6.00/agent_linux.armv7l.tar.gz"
          rootfs_treehash: "24ff3a0adda8546251f7a2c3a072b6c53ea0e5e4"

@@ -90,6 +90,9 @@ if [[ ! -x "${PYTHON:-}" ]]; then
 fi
 
 # We allow the user to override the architecture we download
+echo "--- :julia: Determining architecture"
+echo "uname: $(uname -a)"
+echo "User override: ${BUILDKITE_PLUGIN_JULIA_ARCH:-none}"
 ARCH="${BUILDKITE_PLUGIN_JULIA_ARCH:-$(uname -m)}"
 
 # Next, let's download Julia by calculating the URL we'll download from,
