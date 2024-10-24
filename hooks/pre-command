@@ -16,7 +16,7 @@ fi
 CACHE_DIR=${BUILDKITE_PLUGIN_JULIA_CACHE_DIR:-${HOME}/.cache/julia-buildkite-plugin}
 
 # The version of Julia we're downloading
-JULIA_VERSION="${BUILDKITE_PLUGIN_JULIA_VERSION}"
+JULIA_VERSION="${BUILDKITE_PLUGIN_JULIA_VERSION:-1}"
 
 # Did we get a julia version that's actually a URL?
 if [[ "${JULIA_VERSION}" == "https://"* ]]; then
