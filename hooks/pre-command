@@ -16,7 +16,7 @@ fi
 CACHE_DIR=${BUILDKITE_PLUGIN_JULIA_CACHE_DIR:-${HOME}/.cache/julia-buildkite-plugin}
 
 # The version of Julia we're downloading
-JULIA_VERSION="${BUILDKITE_PLUGIN_JULIA_VERSION}"
+JULIA_VERSION="${BUILDKITE_PLUGIN_JULIA_VERSION:-1}"
 
 # Did we get a julia version that's actually a URL?
 if [[ "${JULIA_VERSION}" == "https://"* ]]; then
@@ -90,6 +90,9 @@ if [[ ! -x "${PYTHON:-}" ]]; then
 fi
 
 # We allow the user to override the architecture we download
+echo "--- :julia: Determining architecture"
+echo "uname: $(uname -a)"
+echo "User override: ${BUILDKITE_PLUGIN_JULIA_ARCH:-none}"
 ARCH="${BUILDKITE_PLUGIN_JULIA_ARCH:-$(uname -m)}"
 
 # Next, let's download Julia by calculating the URL we'll download from,
