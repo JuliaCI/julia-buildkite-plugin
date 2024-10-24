@@ -12,8 +12,8 @@ steps:
     plugins:
       # Install Julia v1 so we can use Sandbox
       - JuliaCI/julia:
-          version: "1.10"
-      - staticfloat/sandbox#v1:
+          version: "1"
+      - staticfloat/sandbox#v2:
          rootfs_url: "https://github.com/JuliaCI/rootfs-images/releases/download/v5.44/agent_linux.i686.tar.gz"
          rootfs_treehash: "c0e2d7ef8f233d978c15e61734f0dfa25aba7536"
       - staticfloat/metahook#sf/windows_backslashes:

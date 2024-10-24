@@ -14,7 +14,7 @@ steps:
       - JuliaCI/julia:
           version: "1.7"
           arch: "armv7l"
-      - staticfloat/sandbox#v1:
+      - staticfloat/sandbox#v2:
          rootfs_url: "https://github.com/JuliaCI/rootfs-images/releases/download/v6.00/agent_linux.armv7l.tar.gz"
          rootfs_treehash: "24ff3a0adda8546251f7a2c3a072b6c53ea0e5e4"
       - staticfloat/metahook#sf/windows_backslashes:
