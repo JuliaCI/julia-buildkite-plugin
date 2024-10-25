@@ -12,7 +12,7 @@ CACHE_DIR=${BUILDKITE_PLUGIN_JULIA_CACHE_DIR:-${HOME}/.cache/julia-buildkite-plu
 echo "--- :broom: Performing clean-up"
 
 
-### Step 1: Remove any code coverage files
+### Step 1: Remove any code coverage files.
 
 echo "Removing coverage files"
 
@@ -25,27 +25,29 @@ if [[ "${BUILDKITE_PLUGIN_JULIA_ISOLATED_DEPOT:-true}" == "true" ]]; then
 fi
 
 
-### Step 2: Run `Pkg.gc` to try to reduce the size of the depot.
+### Step 2: Reduce the size of our depot by running `Pkg.gc`.
 
 # since we remove most manifests at the start of each pipeline (cleaning the depot),
 # there's no way for Pkg to actually track which artifacts are active, so we just invoke
 # `gc()` with `collect_delay` set to zero to cause immediate collection on versions of
 # julia that are new enough to have a generational Pkg GC.
 
+# Allow the user to customize whether items are GC'ed immediately or not
+# Defaults to deleting things after a week of inactivity
+CLEANUP_COLLECT_DELAY="${BUILDKITE_PLUGIN_JULIA_CLEANUP_COLLECT_DELAY:-604800}" # 1 week
+
 GC_CMD="""
 using Pkg, Dates
 
-# Allow the user to customize whether items are GC'ed immediately or not
-# Defaults to deleting things after a week of inactivity
-collect_delay = parse(Int64, get(ENV, \"BUILDKITE_PLUGIN_JULIA_CLEANUP_COLLECT_DELAY\", \"604800\"))
+collect_delay = SecondIparse(Int64, ARGS[1]))
 
 @info(\"Running Pkg.gc()\", collect_delay)
 if VERSION >= v\"1.6-\"
     # If we're on v1.6+, we can use verbose, which is nice
-    Pkg.gc(collect_delay=Second(collect_delay), verbose=true)
+    Pkg.gc(collect_delay=collect_delay, verbose=true)
 elseif VERSION >= v\"1.3-\"
     # If we're on v1.3+, we must set the collect_delay low
-    Pkg.gc(collect_delay=Second(collect_delay))
+    Pkg.gc(collect_delay=collect_delay)
 else
     # Otherwise, on truly old versions, the only thing we can do is call gc()
     Pkg.gc()
