@@ -21,9 +21,23 @@ steps:
 
 ### Advanced Options
 
-* `arch`: a string specifying the architecture to download Julia for. Defaults to `uname -m`.
-* `cache_dir`: a string specifying a location for maintaining a cache of Julia installations, depots, etc. Defaults to `${HOME}/.cache/julia-buildkite-plugin`. Persist this directory on your agents to speed up subsequent builds.
-* `cleanup_collect_delay`: a string specifying a period in seconds after which package garbage collection, i.e. [`Pkg.gc`](https://pkgdocs.julialang.org/v1/api/#Pkg.gc), will consider orphaned items for cleanup. Defaults to `604800` seconds, i.e. 1 week.
-* `debug_plugin`: a boolean, which defaults to `false`, severely increasing the verbosity of the plugin for debugging purposes.
-* `python`: a string specifying the path to a Python 3 distribution. The plugin will try to autodetect the location of a Python 3 installation by default.
+* `arch`: a string specifying the architecture to download Julia for. Defaults
+  to `uname -m`.
+* `cache_dir`: a string specifying a location for maintaining a cache of Julia
+  installations, depots, etc. Defaults to
+  `${HOME}/.cache/julia-buildkite-plugin`. Persist this directory on your agents
+  to speed up subsequent builds.
+* `cleanup_collect_delay`: a string specifying a period in seconds after which
+  package garbage collection, i.e.
+  [`Pkg.gc`](https://pkgdocs.julialang.org/v1/api/#Pkg.gc), will consider
+  orphaned items for cleanup. Defaults to `604800` seconds, i.e. 1 week.
+* `pipeline_age_limit`: a string specifying a period in seconds after which the
+  pipeline-specific depot will be considered stale and removed. Defaults to
+  `2592000` seconds, i.e. 30 days.
+* `compilecache_size_limit`: a string specifying the maximum size of the
+  compilecache in bytes. Defaults to `1073741824` bytes, i.e. 1 GiB.
+* `debug_plugin`: a boolean, which defaults to `false`, severely increasing the
+  verbosity of the plugin for debugging purposes.
+* `python`: a string specifying the path to a Python 3 distribution. The plugin
+  will try to autodetect the location of a Python 3 installation by default.
 * `update_registry`: a boolean, which defaults to `true`, indicating whether to update the package registry.
