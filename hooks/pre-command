@@ -44,6 +44,11 @@ if [[ "${BUILDKITE_PLUGIN_JULIA_ISOLATED_DEPOT:-true}" == "true" ]]; then
         rm -rf -- !($(join_by "|" ${PERSIST_DEPOT_DIRS}))
         popd >/dev/null
     fi
+
+    # Mark the depot as in-use by touching it
+    if [[ -d "${JULIA_DEPOT_PATH}" ]]; then
+        touch "${JULIA_DEPOT_PATH}"
+    fi
 else
     if [[ -v BUILDKITE_PLUGIN_JULIA_PERSIST_DEPOT_DIRS ]]; then
         buildkite-agent annotate --style warning "persist_depot_dirs specified with a non-isolated depot; this has no effect."
