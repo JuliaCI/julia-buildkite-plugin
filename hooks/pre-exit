@@ -108,3 +108,32 @@ if [[ "${BUILDKITE_PLUGIN_JULIA_ISOLATED_DEPOT:-true}" == "true" ]] && [[ -d "${
         find "${COMPILECACHE}" -type d -empty -delete
     fi
 fi
+
+
+### Step 4: Remove old depots.
+
+# We mark a depot as in-use by `touch`ing it at the start of the pipeline,
+# so we can remove any depots that are older than a certain age.
+
+PIPELINE_AGE_LIMIT="${BUILDKITE_PLUGIN_JULIA_PIPELINE_AGE_LIMIT:-2592000}"
+
+julia --color=yes -e '
+    function main(depots_dir, age_limit_str)
+        age_limit = parse(Int, age_limit_str)
+        current_time = time()
+
+        # Process all depot directories
+        for depot in readdir(depots_dir; join=true)
+            isdir(depot) || continue
+            depot_age = current_time - mtime(depot)
+            if depot_age > age_limit
+                println("Removing old depot: ", depot)
+
+                # Old versions of Julia cannot reliably chmod or rm directories
+                run(ignorestatus(`chmod -R u+w $depot`))
+                run(ignorestatus(`rm -rf $depot`))
+            end
+        end
+    end
+    main(ARGS...)
+' "${CACHE_DIR}"/depots "${PIPELINE_AGE_LIMIT}" || true
