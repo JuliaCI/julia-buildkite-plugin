@@ -39,7 +39,7 @@ CLEANUP_COLLECT_DELAY="${BUILDKITE_PLUGIN_JULIA_CLEANUP_COLLECT_DELAY:-604800}" 
 GC_CMD="""
 using Pkg, Dates
 
-collect_delay = SecondIparse(Int64, ARGS[1]))
+collect_delay = Second(parse(Int64, ARGS[1]))
 
 @info(\"Running Pkg.gc()\", collect_delay)
 if VERSION >= v\"1.6-\"
@@ -53,19 +53,58 @@ else
     Pkg.gc()
 end
 """
-julia --color=yes -e "${GC_CMD}" || true
+julia --color=yes -e "${GC_CMD}" "${CLEANUP_COLLECT_DELAY}" || true
 
-### Step 3: If the depot is still greater than the hard limit, remove it altogether.
-if [[ "${BUILDKITE_PLUGIN_JULIA_ISOLATED_DEPOT:-true}" == "true" ]]; then
-    DEPOT_SIZE_HUMAN=$(du -h -s "${JULIA_DEPOT_PATH}" | cut -f 1)
-    # `-k` gives consistently the number of kilobytes on both macOS and Linux, without it
-    # BSD `du` would give the number of multiples of 512 bytes.
-    DEPOT_SIZE=$(($(du -k -s "${JULIA_DEPOT_PATH}" | cut -f 1) * 1024))
-    DEPOT_HARD_LIMIT="${BUILDKITE_PLUGIN_JULIA_DEPOT_HARD_SIZE_LIMIT:-21474836480}" # 21474836480 bytes = 20 GiB
-    echo "The depot size is: ${DEPOT_SIZE_HUMAN}"
-    if [[ ${DEPOT_SIZE} -gt ${DEPOT_HARD_LIMIT} ]]; then
-        echo "This is greater than the hard limit (${DEPOT_SIZE} > ${DEPOT_HARD_LIMIT} bytes), so we will clear the entire depot"
-        rm -rf "${JULIA_DEPOT_PATH}"
-        mkdir -p "${JULIA_DEPOT_PATH}"
+
+### Step 3: Reduce the size of our depot by removing old precompilation files.
+
+# Julia does not track when a precompilation file was last used, so we simply
+# remove files in the `compiled` directory until we are below the hard limit.
+
+COMPILECACHE="${JULIA_DEPOT_PATH}/compiled"
+
+if [[ "${BUILDKITE_PLUGIN_JULIA_ISOLATED_DEPOT:-true}" == "true" ]] && [[ -d "${COMPILECACHE}" ]]; then
+    CACHE_SIZE_HUMAN=$(du -h -s "${COMPILECACHE}" | cut -f 1)
+    # `-k` gives consistently the number of kilobytes on both macOS and Linux,
+    # without it BSD `du` would give the number of multiples of 512 bytes.
+    CACHE_SIZE=$(($(du -k -s "${COMPILECACHE}" | cut -f 1) * 1024))
+    CACHE_LIMIT="${BUILDKITE_PLUGIN_JULIA_COMPILECACHE_SIZE_LIMIT:-1073741824}"
+    echo "The compilation cache size is: ${CACHE_SIZE_HUMAN}"
+
+    if [[ ${CACHE_SIZE} -gt ${CACHE_LIMIT} ]]; then
+        echo "This is greater than the hard limit (${CACHE_SIZE} > ${CACHE_LIMIT} bytes), so we will clear the compilation cache"
+
+        # Remove oldest files until we are below the hard limit
+        # We do this in Julia to avoid platform portability issues.
+        julia --color=yes -e '
+            function main(compilecache, cache_size_str, cache_limit_str)
+                cache_size = parse(Int, cache_size_str)
+                cache_limit = parse(Int, cache_limit_str)
+
+                # Get all files with their modification times
+                files = []
+                for (root, _, files_in_dir) in walkdir(compilecache)
+                    for file in files_in_dir
+                        path = joinpath(root, file)
+                        push!(files, (; path, stat=stat(path)))
+                    end
+                end
+
+                # Sort by modification time (oldest first)
+                sort!(files; by=file->file.stat.mtime)
+
+                # Remove files until we are under the limit
+                for file in files
+                    rm(file.path)
+                    cache_size -= file.stat.size
+                    cache_size <= cache_limit && break
+                end
+            end
+
+            main(ARGS...)
+        ' "${COMPILECACHE}" "${CACHE_SIZE}" "${CACHE_LIMIT}" || true
+
+        # Cleanup empty directories
+        find "${COMPILECACHE}" -type d -empty -delete
     fi
 fi
