@@ -43,6 +43,10 @@ if [[ "${BUILDKITE_PLUGIN_JULIA_ISOLATED_DEPOT:-true}" == "true" ]]; then
         pushd "${JULIA_DEPOT_PATH}" >/dev/null
         rm -rf -- !($(join_by "|" ${PERSIST_DEPOT_DIRS}))
         popd >/dev/null
+
+        # Clean out any stale pidfiles that may have come from a cancelled run,
+        # as it's not possible for another job to be running concurrently.
+        find "${JULIA_DEPOT_PATH}"/compiled -name '*.pidfile' -delete
     fi
 
     # Mark the depot as in-use by touching it
