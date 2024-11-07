@@ -63,12 +63,14 @@ julia --color=yes -e "${GC_CMD}" "${CLEANUP_COLLECT_DELAY}" || true
 
 COMPILECACHE="${JULIA_DEPOT_PATH}/compiled"
 
+# default limit: 1 GiB
+CACHE_LIMIT="${BUILDKITE_PLUGIN_JULIA_COMPILECACHE_SIZE_LIMIT:-1073741824}"
+
 if [[ "${BUILDKITE_PLUGIN_JULIA_ISOLATED_DEPOT:-true}" == "true" ]] && [[ -d "${COMPILECACHE}" ]]; then
     CACHE_SIZE_HUMAN=$(du -h -s "${COMPILECACHE}" | cut -f 1)
     # `-k` gives consistently the number of kilobytes on both macOS and Linux,
     # without it BSD `du` would give the number of multiples of 512 bytes.
     CACHE_SIZE=$(($(du -k -s "${COMPILECACHE}" | cut -f 1) * 1024))
-    CACHE_LIMIT="${BUILDKITE_PLUGIN_JULIA_COMPILECACHE_SIZE_LIMIT:-1073741824}"
     echo "The compilation cache size is: ${CACHE_SIZE_HUMAN}"
 
     if [[ ${CACHE_SIZE} -gt ${CACHE_LIMIT} ]]; then
@@ -110,7 +112,30 @@ if [[ "${BUILDKITE_PLUGIN_JULIA_ISOLATED_DEPOT:-true}" == "true" ]] && [[ -d "${
 fi
 
 
-### Step 4: Remove old depots.
+### Step 4: If the depot is still too big, remove it altogether.
+
+# `Pkg.gc` doesn't always clean old artifacts, for reasons that are not entirely
+# clear yet. As a final resort, we can remove the entire depot if it is too big.
+
+# default limit: 20 GiB
+DEPOT_HARD_LIMIT="${BUILDKITE_PLUGIN_JULIA_DEPOT_HARD_SIZE_LIMIT:-21474836480}"
+
+if [[ "${BUILDKITE_PLUGIN_JULIA_ISOLATED_DEPOT:-true}" == "true" ]]; then
+    DEPOT_SIZE_HUMAN=$(du -h -s "${JULIA_DEPOT_PATH}" | cut -f 1)
+    # `-k` gives consistently the number of kilobytes on both macOS and Linux,
+    # without it BSD `du` would give the number of multiples of 512 bytes.
+    DEPOT_SIZE=$(($(du -k -s "${JULIA_DEPOT_PATH}" | cut -f 1) * 1024))
+    echo "The depot size is: ${DEPOT_SIZE_HUMAN}"
+
+    if [[ ${DEPOT_SIZE} -gt ${DEPOT_HARD_LIMIT} ]]; then
+        echo "This is greater than the hard limit (${DEPOT_SIZE} > ${DEPOT_HARD_LIMIT} bytes), so we will clear the entire depot"
+        rm -rf "${JULIA_DEPOT_PATH}"
+        mkdir -p "${JULIA_DEPOT_PATH}"
+    fi
+fi
+
+
+### Step 5: Remove old depots.
 
 # We mark a depot as in-use by `touch`ing it at the start of the pipeline,
 # so we can remove any depots that are older than a certain age.
