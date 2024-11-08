@@ -25,150 +25,97 @@ if [[ "${BUILDKITE_PLUGIN_JULIA_ISOLATED_DEPOT:-true}" == "true" ]]; then
 fi
 
 
-### Step 2: Reduce the size of our depot by removing old precompilation files.
+### Step 2: Reduce the size of our depot by running `Pkg.gc`.
+
+# since we remove most manifests at the start of each pipeline (cleaning the depot),
+# there's no way for Pkg to actually track which artifacts are active, so we just invoke
+# `gc()` with `collect_delay` set to zero to cause immediate collection on versions of
+# julia that are new enough to have a generational Pkg GC.
+
+# Allow the user to customize whether items are GC'ed immediately or not
+# Defaults to deleting things after a week of inactivity
+CLEANUP_COLLECT_DELAY="${BUILDKITE_PLUGIN_JULIA_CLEANUP_COLLECT_DELAY:-604800}" # 1 week
+
+GC_CMD="""
+using Pkg, Dates
+
+collect_delay = Second(parse(Int64, ARGS[1]))
+
+@info(\"Running Pkg.gc()\", collect_delay)
+if VERSION >= v\"1.6-\"
+    # If we're on v1.6+, we can use verbose, which is nice
+    Pkg.gc(collect_delay=collect_delay, verbose=true)
+elseif VERSION >= v\"1.3-\"
+    # If we're on v1.3+, we must set the collect_delay low
+    Pkg.gc(collect_delay=collect_delay)
+else
+    # Otherwise, on truly old versions, the only thing we can do is call gc()
+    Pkg.gc()
+end
+"""
+julia --color=yes -e "${GC_CMD}" "${CLEANUP_COLLECT_DELAY}" || true
+
+
+### Step 3: Reduce the size of our depot by removing old precompilation files.
 
 # Julia does not track when a precompilation file was last used, so we simply
-# remove files in the `compiled` directory until we are below the limit.
+# remove files in the `compiled` directory until we are below the hard limit.
 
-COMPILED_DIR="${JULIA_DEPOT_PATH}/compiled"
+COMPILECACHE="${JULIA_DEPOT_PATH}/compiled"
 
-# default limit: 1 GiB
-COMPILED_LIMIT="${BUILDKITE_PLUGIN_JULIA_COMPILED_SIZE_LIMIT:-1073741824}"
-
-if [[ "${BUILDKITE_PLUGIN_JULIA_ISOLATED_DEPOT:-true}" == "true" ]] && [[ -d "${COMPILED_DIR}" ]]; then
-    COMPILED_SIZE_HUMAN=$(du -h -s "${COMPILED_DIR}" | cut -f 1)
+if [[ "${BUILDKITE_PLUGIN_JULIA_ISOLATED_DEPOT:-true}" == "true" ]] && [[ -d "${COMPILECACHE}" ]]; then
+    CACHE_SIZE_HUMAN=$(du -h -s "${COMPILECACHE}" | cut -f 1)
     # `-k` gives consistently the number of kilobytes on both macOS and Linux,
     # without it BSD `du` would give the number of multiples of 512 bytes.
-    COMPILED_SIZE=$(($(du -k -s "${COMPILED_DIR}" | cut -f 1) * 1024))
-    echo "The compilation cache size is: ${COMPILED_SIZE_HUMAN}"
+    CACHE_SIZE=$(($(du -k -s "${COMPILECACHE}" | cut -f 1) * 1024))
+    CACHE_LIMIT="${BUILDKITE_PLUGIN_JULIA_COMPILECACHE_SIZE_LIMIT:-1073741824}"
+    echo "The compilation cache size is: ${CACHE_SIZE_HUMAN}"
 
-    if [[ ${COMPILED_SIZE} -gt ${COMPILED_LIMIT} ]]; then
-        echo "This is greater than the limit (${COMPILED_SIZE} > ${COMPILED_LIMIT} bytes), so we will clear the compilation cache"
+    if [[ ${CACHE_SIZE} -gt ${CACHE_LIMIT} ]]; then
+        echo "This is greater than the hard limit (${CACHE_SIZE} > ${CACHE_LIMIT} bytes), so we will clear the compilation cache"
 
-        # Remove files until we are below the limit
+        # Remove oldest files until we are below the hard limit
         # We do this in Julia to avoid platform portability issues.
         julia --color=yes -e '
-            function main(compilecache, size_str, limit_str)
-                size = parse(Int, size_str)
-                limit = parse(Int, limit_str)
+            function main(compilecache, cache_size_str, cache_limit_str)
+                cache_size = parse(Int, cache_size_str)
+                cache_limit = parse(Int, cache_limit_str)
 
                 # Get all files with their modification times
-                worklist = []
-                for (root, dirs, files) in walkdir(compilecache)
-                    for file in files
+                files = []
+                for (root, _, files_in_dir) in walkdir(compilecache)
+                    for file in files_in_dir
                         path = joinpath(root, file)
-                        push!(worklist, (; path, stat=stat(path)))
+                        push!(files, (; path, stat=stat(path)))
                     end
                 end
 
                 # Sort by modification time (oldest first)
-                sort!(worklist; by=entry->entry.stat.mtime)
+                sort!(files; by=file->file.stat.mtime)
 
                 # Remove files until we are under the limit
-                for entry in worklist
-                    rm(entry.path)
-                    size -= entry.stat.size
-                    size <= limit && break
+                for file in files
+                    rm(file.path)
+                    cache_size -= file.stat.size
+                    cache_size <= cache_limit && break
                 end
             end
 
             main(ARGS...)
-        ' "${COMPILED_DIR}" "${COMPILED_SIZE}" "${COMPILED_LIMIT}" || true
+        ' "${COMPILECACHE}" "${CACHE_SIZE}" "${CACHE_LIMIT}" || true
 
         # Cleanup empty directories
-        find "${COMPILED_DIR}" -type d -empty -delete
+        find "${COMPILECACHE}" -type d -empty -delete
     fi
 fi
 
 
-### Step 3: Reduce the size of our depot by removing old artifacts.
-
-# This is normally done by `Pkg.gc`, however, since manifests are ephemeral
-# (and logs directories may not even persist) that doesn't work well.
-# So instead we remove directories based on their creation time.
-
-ARTIFACTS_DIR="${JULIA_DEPOT_PATH}/compiled"
-
-# default limit: 10 GiB
-ARTIFACTS_LIMIT="${BUILDKITE_PLUGIN_JULIA_ARTIFACTS_SIZE_LIMIT:-10737418240}"
-
-if [[ "${BUILDKITE_PLUGIN_JULIA_ISOLATED_DEPOT:-true}" == "true" ]] && [[ -d "${ARTIFACTS_DIR}" ]]; then
-    ARTIFACTS_SIZE_HUMAN=$(du -h -s "${ARTIFACTS_DIR}" | cut -f 1)
-    # `-k` gives consistently the number of kilobytes on both macOS and Linux,
-    # without it BSD `du` would give the number of multiples of 512 bytes.
-    ARTIFACTS_SIZE=$(($(du -k -s "${ARTIFACTS_DIR}" | cut -f 1) * 1024))
-    echo "The artifact store size is: ${ARTIFACTS_SIZE_HUMAN}"
-
-    if [[ ${ARTIFACTS_SIZE} -gt ${ARTIFACTS_LIMIT} ]]; then
-        echo "This is greater than the limit (${ARTIFACTS_SIZE} > ${ARTIFACTS_LIMIT} bytes), so we will clear the artifact store"
-
-        # Remove directories until we are below the limit
-        # We do this in Julia to avoid platform portability issues.
-        julia --color=yes -e '
-            function main(artifacts, size_str, limit_str)
-                size = parse(Int, size_str)
-                limit = parse(Int, limit_str)
-
-                # Get all artifacts with their creation times
-                worklist = []
-                for dir in readdir(artifacts)
-                    path = joinpath(artifacts, dir)
-                    isdir(path) || continue
-                    push!(worklist, (; path, stat=stat(path)))
-                end
-
-                # Sort by creation time (oldest first)
-                sort!(worklist; by=entry->entry.stat.ctime)
-
-                # Remove artifacts until we are under the limit
-                for entry in worklist
-                    # artifacts can have funky permissions
-                    run(`chmod -R u+w $(entry.path)`)
-                    sz = parse(Int, split(read(`du -k -s $(entry.path)`, String))[1]) * 1024
-                    rm(entry.path; recursive=true)
-                    size -= sz
-                    size <= limit && break
-                end
-            end
-
-            main(ARGS...)
-        ' "${ARTIFACTS_DIR}" "${ARTIFACTS_SIZE}" "${ARTIFACTS_LIMIT}" || true
-
-        # Cleanup empty directories
-        find "${ARTIFACTS_DIR}" -type d -empty -delete
-    fi
-fi
-
-
-### Step 4: If the depot is still too big, remove it altogether.
-
-# Data may be stored in unmanaged directories (e.g. `conda` or `scratchspaces`)
-
-# default limit: COMPILED_LIMIT + ARTIFACTS_LIMIT + 10GiB (~20GiB normally)
-DEPOT_LIMIT_DEFAULT=$(($COMPILED_LIMIT+$ARTIFACTS_LIMIT+10737418240))
-DEPOT_LIMIT="${BUILDKITE_PLUGIN_JULIA_DEPOT_SIZE_LIMIT:-${DEPOT_LIMIT_DEFAULT}}"
-
-if [[ "${BUILDKITE_PLUGIN_JULIA_ISOLATED_DEPOT:-true}" == "true" ]]; then
-    DEPOT_SIZE_HUMAN=$(du -h -s "${JULIA_DEPOT_PATH}" | cut -f 1)
-    # `-k` gives consistently the number of kilobytes on both macOS and Linux,
-    # without it BSD `du` would give the number of multiples of 512 bytes.
-    DEPOT_SIZE=$(($(du -k -s "${JULIA_DEPOT_PATH}" | cut -f 1) * 1024))
-    echo "The depot size is: ${DEPOT_SIZE_HUMAN}"
-
-    if [[ ${DEPOT_SIZE} -gt ${DEPOT_LIMIT} ]]; then
-        echo "This is greater than the limit (${DEPOT_SIZE} > ${DEPOT_LIMIT} bytes), so we will clear the entire depot"
-        rm -rf "${JULIA_DEPOT_PATH}"
-        mkdir -p "${JULIA_DEPOT_PATH}"
-    fi
-fi
-
-
-### Step 5: Remove old depots.
+### Step 4: Remove old depots.
 
 # We mark a depot as in-use by `touch`ing it at the start of the pipeline,
 # so we can remove any depots that are older than a certain age.
 
-DEPOT_AGE_LIMIT="${BUILDKITE_PLUGIN_JULIA_DEPOT_AGE_LIMIT:-2592000}"
+PIPELINE_AGE_LIMIT="${BUILDKITE_PLUGIN_JULIA_PIPELINE_AGE_LIMIT:-2592000}"
 
 julia --color=yes -e '
     function main(depots_dir, age_limit_str)
@@ -189,4 +136,4 @@ julia --color=yes -e '
         end
     end
     main(ARGS...)
-' "${CACHE_DIR}"/depots "${DEPOT_AGE_LIMIT}" || true
+' "${CACHE_DIR}"/depots "${PIPELINE_AGE_LIMIT}" || true

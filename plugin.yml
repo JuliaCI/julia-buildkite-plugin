@@ -12,13 +12,9 @@ configuration:
       type: boolean
     persist_depot_dirs:
       type: string
-    compiled_size_limit:
+    depot_hard_size_limit:
       type: string
-    artifacts_size_limit:
-      type: string
-    depot_size_limit:
-      type: string
-    depot_age_limit:
+    cleanup_collect_delay:
       type: string
     python:
       type: string
