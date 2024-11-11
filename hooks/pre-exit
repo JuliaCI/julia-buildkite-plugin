@@ -90,7 +90,7 @@ fi
 # (and logs directories may not even persist) that doesn't work well.
 # So instead we remove directories based on their creation time.
 
-ARTIFACTS_DIR="${JULIA_DEPOT_PATH}/compiled"
+ARTIFACTS_DIR="${JULIA_DEPOT_PATH}/artifacts"
 
 # default limit: 10 GiB
 ARTIFACTS_LIMIT="${BUILDKITE_PLUGIN_JULIA_ARTIFACTS_SIZE_LIMIT:-10737418240}"
