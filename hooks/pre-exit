@@ -136,9 +136,6 @@ if [[ "${BUILDKITE_PLUGIN_JULIA_ISOLATED_DEPOT:-true}" == "true" ]] && [[ -d "${
 
             main(ARGS...)
         ' "${ARTIFACTS_DIR}" "${ARTIFACTS_SIZE}" "${ARTIFACTS_LIMIT}" || true
-
-        # Cleanup empty directories
-        find "${ARTIFACTS_DIR}" -type d -empty -delete
     fi
 fi
 
