@@ -1,9 +1,28 @@
-import distutils.version
 import json
+import re
 import sys
 import urllib.request
 
-distutils.version.StrictVersion
+class SimpleVersion:
+    """Simple version class using only standard library"""
+    def __init__(self, version_string):
+        self.version_string = version_string
+        # Parse version string like "1.9.3" into components
+        match = re.match(r'^(\d+)\.(\d+)\.(\d+)', version_string)
+        if not match:
+            raise ValueError(f"Invalid version string: {version_string}")
+        self.major = int(match.group(1))
+        self.minor = int(match.group(2))
+        self.micro = int(match.group(3))
+    
+    def __lt__(self, other):
+        return (self.major, self.minor, self.micro) < (other.major, other.minor, other.micro)
+    
+    def __eq__(self, other):
+        return (self.major, self.minor, self.micro) == (other.major, other.minor, other.micro)
+    
+    def __str__(self):
+        return self.version_string
 
 def download_versions_json(url = "https://julialang-s3.julialang.org/bin/versions.json"):
     request = urllib.request.Request(url)
@@ -20,18 +39,18 @@ def get_stable_versions(parsed_json):
             if is_stable:
                 stable_version_strings.append(key)
     stable_version_strings_unique = list(set(stable_version_strings))
-    stable_versions = [distutils.version.StrictVersion(s) for s in stable_version_strings_unique]
+    stable_versions = [SimpleVersion(s) for s in stable_version_strings_unique]
     stable_versions.sort()
     return stable_versions
 
-def get_major(version):
-    return version.version[0]
+def get_major(version_obj):
+    return version_obj.major
 
-def get_minor(version):
-    return version.version[1]
+def get_minor(version_obj):
+    return version_obj.minor
 
-def get_patch(version):
-    return version.version[2]
+def get_patch(version_obj):
+    return version_obj.micro
 
 def get_highest_minor_matching_major(versions_list, major):
     all_majors = [get_major(v) for v in versions_list]
