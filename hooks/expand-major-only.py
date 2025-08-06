@@ -4,11 +4,31 @@ import sys
 import urllib.request
 
 class SimpleVersion:
-    """Simple version class using only standard library"""
+    """
+    A simple version class using only the Python standard library.
+
+    This class is intended as a minimal replacement for standard library components
+    such as distutils.version.StrictVersion, supporting only a subset of versioning features.
+
+    Supported version format:
+        - Version strings must be in the form "X.Y.Z", where X, Y, and Z are integers.
+        - Example: "1.9.3"
+        - No support for pre-releases, post-releases, alpha/beta/rc tags, or other PEP 440 features.
+
+    Comparison behavior:
+        - Versions are compared lexicographically by (major, minor, micro) components.
+        - Only equality and less-than comparisons are implemented.
+
+    Limitations:
+        - Only the "X.Y.Z" format is accepted; other formats will raise ValueError.
+        - Does not support version strings with fewer or more than three components.
+        - Does not support non-numeric version parts.
+        - Not a drop-in replacement for distutils.version.StrictVersion or packaging.version.Version.
+    """
     def __init__(self, version_string):
         self.version_string = version_string
         # Parse version string like "1.9.3" into components
-        match = re.match(r'^(\d+)\.(\d+)\.(\d+)', version_string)
+        match = re.match(r'^(\d+)\.(\d+)\.(\d+)$', version_string)
         if not match:
             raise ValueError(f"Invalid version string: {version_string}")
         self.major = int(match.group(1))
@@ -16,9 +36,13 @@ class SimpleVersion:
         self.micro = int(match.group(3))
     
     def __lt__(self, other):
+        if not isinstance(other, SimpleVersion):
+            return NotImplemented
         return (self.major, self.minor, self.micro) < (other.major, other.minor, other.micro)
     
     def __eq__(self, other):
+        if not isinstance(other, SimpleVersion):
+            return NotImplemented
         return (self.major, self.minor, self.micro) == (other.major, other.minor, other.micro)
     
     def __str__(self):
