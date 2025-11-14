@@ -9,6 +9,11 @@ fi
 
 CACHE_DIR=${BUILDKITE_PLUGIN_JULIA_CACHE_DIR:-${HOME}/.cache/julia-buildkite-plugin}
 
+# If using isolated depot, use the exported DEPOT_DIR or calculate it if not set
+if [[ "${BUILDKITE_PLUGIN_JULIA_ISOLATED_DEPOT:-true}" == "true" && -z "${DEPOT_DIR:-}" ]]; then
+    export DEPOT_DIR="${CACHE_DIR}/depots/${BUILDKITE_PIPELINE_ID}"
+fi
+
 echo "--- :broom: Performing clean-up"
 
 
@@ -23,8 +28,8 @@ fi
 
 # Some packages check coverage files in, so only remove writable ones
 if [[ "${BUILDKITE_PLUGIN_JULIA_ISOLATED_DEPOT:-true}" == "true" && \
-      -d "${JULIA_DEPOT_PATH}"/packages ]]; then
-    find "${JULIA_DEPOT_PATH}"/packages -name "*.jl.*.cov" -type f -perm -200 -delete
+      -d "${DEPOT_DIR}"/packages ]]; then
+    find "${DEPOT_DIR}"/packages -name "*.jl.*.cov" -type f -perm -200 -delete
 fi
 
 
@@ -37,7 +42,7 @@ fi
 COMPILED_LIMIT="${BUILDKITE_PLUGIN_JULIA_COMPILED_SIZE_LIMIT:-1073741824}"
 
 if [[ "${BUILDKITE_PLUGIN_JULIA_ISOLATED_DEPOT:-true}" == "true" ]]; then
-    COMPILED_DIR="${JULIA_DEPOT_PATH}/compiled"
+    COMPILED_DIR="${DEPOT_DIR}/compiled"
     if [[ -d "${COMPILED_DIR}" ]]; then
         COMPILED_SIZE_HUMAN=$(du -h -s "${COMPILED_DIR}" | cut -f 1)
         # `-k` gives consistently the number of kilobytes on macOS and Linux,
@@ -95,7 +100,7 @@ fi
 ARTIFACTS_LIMIT="${BUILDKITE_PLUGIN_JULIA_ARTIFACTS_SIZE_LIMIT:-10737418240}"
 
 if [[ "${BUILDKITE_PLUGIN_JULIA_ISOLATED_DEPOT:-true}" == "true" ]]; then
-    ARTIFACTS_DIR="${JULIA_DEPOT_PATH}/artifacts"
+    ARTIFACTS_DIR="${DEPOT_DIR}/artifacts"
     if [[ -d "${ARTIFACTS_DIR}" ]]; then
         ARTIFACTS_SIZE_HUMAN=$(du -h -s "${ARTIFACTS_DIR}" | cut -f 1)
         # `-k` gives consistently the number of kilobytes on macOS and Linux,
@@ -151,16 +156,16 @@ DEPOT_LIMIT_DEFAULT=$(($COMPILED_LIMIT+$ARTIFACTS_LIMIT+10737418240))
 DEPOT_LIMIT="${BUILDKITE_PLUGIN_JULIA_DEPOT_SIZE_LIMIT:-${DEPOT_LIMIT_DEFAULT}}"
 
 if [[ "${BUILDKITE_PLUGIN_JULIA_ISOLATED_DEPOT:-true}" == "true" ]]; then
-    DEPOT_SIZE_HUMAN=$(du -h -s "${JULIA_DEPOT_PATH}" | cut -f 1)
+    DEPOT_SIZE_HUMAN=$(du -h -s "${DEPOT_DIR}" | cut -f 1)
     # `-k` gives consistently the number of kilobytes on both macOS and Linux,
     # without it BSD `du` would give the number of multiples of 512 bytes.
-    DEPOT_SIZE=$(($(du -k -s "${JULIA_DEPOT_PATH}" | cut -f 1) * 1024))
+    DEPOT_SIZE=$(($(du -k -s "${DEPOT_DIR}" | cut -f 1) * 1024))
     echo "The depot size is: ${DEPOT_SIZE_HUMAN}"
 
     if [[ ${DEPOT_SIZE} -gt ${DEPOT_LIMIT} ]]; then
         echo "This is greater than the limit (${DEPOT_SIZE} > ${DEPOT_LIMIT} bytes), so we will clear the entire depot"
-        rm -rf "${JULIA_DEPOT_PATH}"
-        mkdir -p "${JULIA_DEPOT_PATH}"
+        rm -rf "${DEPOT_DIR}"
+        mkdir -p "${DEPOT_DIR}"
     fi
 fi
 

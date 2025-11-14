@@ -29,8 +29,10 @@ fi
 # around between invocations; by default we persist content-addressed directories such as
 # packages, artifacts and compiled `.ji` files
 if [[ "${BUILDKITE_PLUGIN_JULIA_ISOLATED_DEPOT:-true}" == "true" ]]; then
-    # Export `JULIA_DEPOT_PATH` so that future julia invocations use this depot
-    export JULIA_DEPOT_PATH="${CACHE_DIR}/depots/${BUILDKITE_PIPELINE_ID}"
+    # Store the depot path for internal script use
+    export DEPOT_DIR="${CACHE_DIR}/depots/${BUILDKITE_PIPELINE_ID}"
+    # Export `JULIA_DEPOT_PATH` with trailing separator so Julia can use its shipped pkgimage caches
+    export JULIA_DEPOT_PATH="${DEPOT_DIR}:"
     PERSIST_DEPOT_DIRS="$(echo ${BUILDKITE_PLUGIN_JULIA_PERSIST_DEPOT_DIRS:-packages,artifacts,compiled,logs,datadeps,scratchspaces} | tr ',' ' ' )"
 
     # Helper function to join a list of arguments by a particular character
@@ -38,22 +40,22 @@ if [[ "${BUILDKITE_PLUGIN_JULIA_ISOLATED_DEPOT:-true}" == "true" ]]; then
 
     # If the depot we're isolating ourselves inside of actually exists, we clean out
     # any directories not explicitly saved via `PERSIST_DEPOT_DIRS`
-    if [[ -d "${JULIA_DEPOT_PATH}" ]]; then
-        echo "--- :broom: Cleaning out depot at ${JULIA_DEPOT_PATH}, persisting: '${PERSIST_DEPOT_DIRS}'"
-        pushd "${JULIA_DEPOT_PATH}" >/dev/null
+    if [[ -d "${DEPOT_DIR}" ]]; then
+        echo "--- :broom: Cleaning out depot at ${DEPOT_DIR}, persisting: '${PERSIST_DEPOT_DIRS}'"
+        pushd "${DEPOT_DIR}" >/dev/null
         rm -rf -- !($(join_by "|" ${PERSIST_DEPOT_DIRS}))
         popd >/dev/null
 
         # Clean out any stale pidfiles that may have come from a cancelled run,
         # as it's not possible for another job to be running concurrently.
-        if [[ -d "${JULIA_DEPOT_PATH}"/compiled ]]; then
-          find "${JULIA_DEPOT_PATH}"/compiled -name '*.pidfile' -delete
+        if [[ -d "${DEPOT_DIR}"/compiled ]]; then
+          find "${DEPOT_DIR}"/compiled -name '*.pidfile' -delete
         fi
     fi
 
     # Mark the depot as in-use by touching it
-    if [[ -d "${JULIA_DEPOT_PATH}" ]]; then
-        touch "${JULIA_DEPOT_PATH}"
+    if [[ -d "${DEPOT_DIR}" ]]; then
+        touch "${DEPOT_DIR}"
     fi
 else
     if [[ -v BUILDKITE_PLUGIN_JULIA_PERSIST_DEPOT_DIRS ]]; then
