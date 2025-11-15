@@ -32,7 +32,11 @@ if [[ "${BUILDKITE_PLUGIN_JULIA_ISOLATED_DEPOT:-true}" == "true" ]]; then
     # Store the depot path for internal script use
     export DEPOT_DIR="${CACHE_DIR}/depots/${BUILDKITE_PIPELINE_ID}"
     # Export `JULIA_DEPOT_PATH` with trailing separator so Julia can use its shipped pkgimage caches
-    export JULIA_DEPOT_PATH="${DEPOT_DIR}:"
+    if [[ "$OSTYPE" == "msys" ]]; then
+        export JULIA_DEPOT_PATH="${DEPOT_DIR};"
+    else
+        export JULIA_DEPOT_PATH="${DEPOT_DIR}:"
+    fi
     PERSIST_DEPOT_DIRS="$(echo ${BUILDKITE_PLUGIN_JULIA_PERSIST_DEPOT_DIRS:-packages,artifacts,compiled,logs,datadeps,scratchspaces} | tr ',' ' ' )"
 
     # Helper function to join a list of arguments by a particular character
