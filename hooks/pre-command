@@ -29,9 +29,8 @@ fi
 # around between invocations; by default we persist content-addressed directories such as
 # packages, artifacts and compiled `.ji` files
 if [[ "${BUILDKITE_PLUGIN_JULIA_ISOLATED_DEPOT:-true}" == "true" ]]; then
-    # Store the depot path for internal script use
+    # Export `JULIA_DEPOT_PATH` so that future julia invocations use this depot
     export DEPOT_DIR="${CACHE_DIR}/depots/${BUILDKITE_PIPELINE_ID}"
-    # Export `JULIA_DEPOT_PATH` with trailing separator so Julia can use its shipped pkgimage caches
     if [[ "$OSTYPE" == "msys" ]]; then
         export JULIA_DEPOT_PATH="${DEPOT_DIR};"
     else
