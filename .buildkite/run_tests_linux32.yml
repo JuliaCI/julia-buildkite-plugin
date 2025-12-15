@@ -1,7 +1,7 @@
 self_test_setup: &self_test_setup
   post-checkout: |
-    mkdir -p .buildkite/plugins/julia
-    cp -Ra hooks plugin.yml README.md .buildkite/plugins/julia/
+    mkdir -p .buildkite/plugins/julia-dev
+    cp -Ra hooks plugin.yml README.md .buildkite/plugins/julia-dev/
 
 steps:
   - label: ":julia: ${AGENT_OS?} ${ARCH?} ${JULIA_VERSION?}"
@@ -18,7 +18,7 @@ steps:
          rootfs_treehash: "c0e2d7ef8f233d978c15e61734f0dfa25aba7536"
       - staticfloat/metahook#sf/windows_backslashes:
           <<: *self_test_setup
-      - "./.buildkite/plugins/julia":
+      - "./.buildkite/plugins/julia-dev":
           version: "${JULIA_VERSION?}"
           arch: "i686"
           debug_plugin: "true"

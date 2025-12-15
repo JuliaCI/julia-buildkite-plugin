@@ -1,7 +1,7 @@
 self_test_setup: &self_test_setup
   post-checkout: |
-    mkdir -p .buildkite/plugins/julia
-    cp -Ra hooks plugin.yml README.md .buildkite/plugins/julia/
+    mkdir -p .buildkite/plugins/julia-dev
+    cp -Ra hooks plugin.yml README.md .buildkite/plugins/julia-dev/
 
 steps:
   - label: ":julia: linux x86_64 custom URL"
@@ -12,7 +12,7 @@ steps:
     plugins:
       - staticfloat/metahook#sf/windows_backslashes:
           <<: *self_test_setup
-      - "./.buildkite/plugins/julia":
+      - "./.buildkite/plugins/julia-dev":
           # version is ignored when `url` is provided
           version: "https://julialang-s3.julialang.org/bin/linux/x64/1.9/julia-1.9.0-rc1-linux-x86_64.tar.gz"
           debug_plugin: "true"
