@@ -295,7 +295,7 @@ echo "--- :julia: Installation Successful"
 echo "Julia ${JULIA_VERSION} successfully installed to ${unpack_dest}"
 if [[ "${BUILDKITE_PLUGIN_JULIA_DEBUG_PLUGIN:-false}" == "true" ]]; then
     echo "Contents of installation:"
-    ls -la "${unpack_dest}"
+    ls -laR "${unpack_dest}"
 fi
 "${unpack_dest}/bin/julia" -e 'using InteractiveUtils; versioninfo()'
 
