@@ -325,3 +325,5 @@ else
     done
     export PATH="${MSYS_PATH}"
 fi
+
+export BUILDKITE_PLUGIN_JULIA_SUCCESS="true"

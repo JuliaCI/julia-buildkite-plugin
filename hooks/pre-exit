@@ -11,6 +11,11 @@ CACHE_DIR=${BUILDKITE_PLUGIN_JULIA_CACHE_DIR:-${HOME}/.cache/julia-buildkite-plu
 
 echo "--- :broom: Performing clean-up"
 
+if [[ "${BUILDKITE_PLUGIN_JULIA_SUCCESS:-false}" != "true" ]]; then
+    echo "Skipping clean-up since the plugin did not successfully run."
+    exit 0
+fi
+
 
 ### Step 1: Remove any code coverage files.
 
