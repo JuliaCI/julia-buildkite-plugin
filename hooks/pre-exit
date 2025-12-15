@@ -155,7 +155,7 @@ fi
 DEPOT_LIMIT_DEFAULT=$(($COMPILED_LIMIT+$ARTIFACTS_LIMIT+10737418240))
 DEPOT_LIMIT="${BUILDKITE_PLUGIN_JULIA_DEPOT_SIZE_LIMIT:-${DEPOT_LIMIT_DEFAULT}}"
 
-if [[ "${BUILDKITE_PLUGIN_JULIA_ISOLATED_DEPOT:-true}" == "true" ]]; then
+if [[ "${BUILDKITE_PLUGIN_JULIA_ISOLATED_DEPOT:-true}" == "true" && -d "${DEPOT_DIR}" ]]; then
     DEPOT_SIZE_HUMAN=$(du -h -s "${DEPOT_DIR}" | cut -f 1)
     # `-k` gives consistently the number of kilobytes on both macOS and Linux,
     # without it BSD `du` would give the number of multiples of 512 bytes.
