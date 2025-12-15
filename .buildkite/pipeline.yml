@@ -37,10 +37,10 @@ steps:
       upload_pipelines i686    "1 nightly"
       upload_pipelines aarch64 "1 nightly"
 
-      # We don't have a nightly build for ppc64le
-      upload_pipelines powerpc64le "1"
+      # PowerPC was last supported in Julia 1.10
+      upload_pipelines powerpc64le "1.10"
 
-      # armv7l was last supported in Julia 1.7
+      # ARMv7 was last supported in Julia 1.7
       upload_pipelines arm  "1.7"
 
       # Launch macOS jobs
