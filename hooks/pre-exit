@@ -39,6 +39,8 @@ fi
 
 ### Step 2: Reduce the size of our depot by removing old precompilation files.
 
+echo "Removing old precompilation files"
+
 # Julia does not track when a precompilation file was last used, so we simply
 # remove files in the `compiled` directory until we are below the limit.
 
@@ -95,6 +97,8 @@ fi
 
 
 ### Step 3: Reduce the size of our depot by removing old artifacts.
+
+echo "Removing old artifacts"
 
 # This is normally done by `Pkg.gc`, however, since manifests are ephemeral
 # (and logs directories may not even persist) that doesn't work well.
@@ -178,6 +182,8 @@ fi
 
 
 ### Step 5: Remove old depots.
+
+echo "Removing old depots"
 
 # We mark a depot as in-use by `touch`ing it at the start of the pipeline,
 # so we can remove any depots that are older than a certain age.
