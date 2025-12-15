@@ -9,11 +9,6 @@ fi
 
 CACHE_DIR=${BUILDKITE_PLUGIN_JULIA_CACHE_DIR:-${HOME}/.cache/julia-buildkite-plugin}
 
-# If using isolated depot, use the exported DEPOT_DIR or calculate it if not set
-if [[ "${BUILDKITE_PLUGIN_JULIA_ISOLATED_DEPOT:-true}" == "true" && -z "${DEPOT_DIR:-}" ]]; then
-    export DEPOT_DIR="${CACHE_DIR}/depots/${BUILDKITE_PIPELINE_ID}"
-fi
-
 echo "--- :broom: Performing clean-up"
 
 
