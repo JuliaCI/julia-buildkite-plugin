@@ -1,7 +1,7 @@
 self_test_setup: &self_test_setup
   post-checkout: |
-    mkdir -p .buildkite/plugins/julia-dev
-    cp -Ra hooks plugin.yml README.md .buildkite/plugins/julia-dev/
+    mkdir -p .buildkite/plugins/julia
+    cp -Ra hooks plugin.yml README.md .buildkite/plugins/julia/
   
 steps:
   - label: ":julia: ${AGENT_OS?} ${ARCH?} ${JULIA_VERSION?}"
@@ -12,7 +12,7 @@ steps:
     plugins:
       - staticfloat/metahook#sf/windows_backslashes:
           <<: *self_test_setup
-      - "./.buildkite/plugins/julia-dev":
+      - "./.buildkite/plugins/julia":
           version: "${JULIA_VERSION?}"
           debug_plugin: "true"
     commands: |
