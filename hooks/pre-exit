@@ -2,8 +2,12 @@
 set -euo pipefail
 shopt -s extglob
 
+
+## Set some global configuration options, but allow users to override them
+
 ## If we're running in debug mode, be REALLY VERBOSE:
 if [[ "${BUILDKITE_PLUGIN_JULIA_DEBUG_PLUGIN:-false}" == "true" ]]; then
+    PS4="> "
     set -x
 fi
 
