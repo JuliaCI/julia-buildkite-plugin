@@ -2,7 +2,7 @@ self_test_setup: &self_test_setup
   post-checkout: |
     mkdir -p .buildkite/plugins/julia
     cp -Ra hooks plugin.yml README.md .buildkite/plugins/julia/
-  
+
 steps:
   - label: ":julia: ${AGENT_OS?} ${ARCH?} ${JULIA_VERSION?}"
     agents:
@@ -16,9 +16,9 @@ steps:
           version: "${JULIA_VERSION?}"
           debug_plugin: "true"
     commands: |
-      # If we asked for a nightly version, just check that we got a `1.X`:
+      # If we asked for a nightly or prerelease version, just check that we got a `1.X`:
       CHECK_VERSION="${JULIA_VERSION?}"
-      if [[ "${JULIA_VERSION?}" == "nightly" ]]; then
+      if [[ "${JULIA_VERSION?}" =~ "^(alpha|beta|rc|nightly)$" ]]; then
         CHECK_VERSION="1."
       fi
       [[ "$$(julia --version)" == "julia version $${CHECK_VERSION}"* ]]

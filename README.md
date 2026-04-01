@@ -16,7 +16,8 @@ steps:
 ## Options
 
 * `version`: A version to download and use, examples are `1`, `1.6`, `1.5.3`,
-  `1.7-nightly`.
+  `1.7-nightly`, `alpha`, `beta`, `rc`, or `1.13.0-beta3`.
+  The named prerelease channels resolve to the newest admissible Julia release.
 * `isolated_depot`: a boolean which defaults to `true`, automatically
   configuring Julia to use a pipeline-specific depot. If `false`, the default
   depot (usually `$HOME/.julia`) is used.

@@ -34,17 +34,17 @@ class SimpleVersion:
         self.major = int(match.group(1))
         self.minor = int(match.group(2))
         self.micro = int(match.group(3))
-    
+
     def __lt__(self, other):
         if not isinstance(other, SimpleVersion):
             return NotImplemented
         return (self.major, self.minor, self.micro) < (other.major, other.minor, other.micro)
-    
+
     def __eq__(self, other):
         if not isinstance(other, SimpleVersion):
             return NotImplemented
         return (self.major, self.minor, self.micro) == (other.major, other.minor, other.micro)
-    
+
     def __str__(self):
         return self.version_string
 

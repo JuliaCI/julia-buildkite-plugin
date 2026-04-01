@@ -33,7 +33,7 @@ steps:
 
       # Launch Linux jobs
       AGENT_OS="linux"
-      upload_pipelines x86_64  "1 1.10 nightly"
+      upload_pipelines x86_64  "1 1.10 nightly alpha beta rc"
       upload_pipelines i686    "1 nightly"
       upload_pipelines aarch64 "1 nightly"
 

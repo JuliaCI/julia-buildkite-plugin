@@ -2,7 +2,7 @@ self_test_setup: &self_test_setup
   post-checkout: |
     mkdir -p .buildkite/plugins/julia
     cp -Ra hooks plugin.yml README.md .buildkite/plugins/julia/
-  
+
 steps:
   - label: ":julia: ${AGENT_OS?} ${ARCH?} ${JULIA_VERSION?}"
     agents:
