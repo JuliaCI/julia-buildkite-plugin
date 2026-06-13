@@ -2,6 +2,8 @@
 set -euo pipefail
 shopt -s extglob
 
+is_windows() { [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" ]]; }
+
 
 ## Set some global configuration options, but allow users to override them
 
@@ -31,7 +33,7 @@ fi
 if [[ "${BUILDKITE_PLUGIN_JULIA_ISOLATED_DEPOT:-true}" == "true" ]]; then
     # Export `JULIA_DEPOT_PATH` so that future julia invocations use this depot
     export DEPOT_DIR="${CACHE_DIR}/depots/${BUILDKITE_PIPELINE_ID}"
-    if [[ "$OSTYPE" == "msys" ]]; then
+    if is_windows; then
         export JULIA_DEPOT_PATH="${DEPOT_DIR};"
     else
         export JULIA_DEPOT_PATH="${DEPOT_DIR}:"
@@ -196,7 +198,7 @@ elif [[ "$OSTYPE" == "darwin"* ]]; then
         ;;
     esac
     ext="tar.gz"
-elif [[ "$OSTYPE" == "msys" ]]; then
+elif is_windows; then
     os="winnt"
     nightly_os="winnt"
     case "$ARCH" in
@@ -312,7 +314,7 @@ if [[ "${BUILDKITE_PLUGIN_JULIA_UPDATE_REGISTRY:-true}" == "true" ]]; then
       end'
 fi
 
-if [[ "${OSTYPE}" != "msys" ]]; then
+if ! is_windows; then
     # Export `PATH` such that this `julia` is the first one other plugins find
     export PATH=${unpack_dest}/bin:"$PATH"
 else
