@@ -61,7 +61,7 @@ if [[ "${BUILDKITE_PLUGIN_JULIA_ISOLATED_DEPOT:-true}" == "true" ]]; then
         touch "${DEPOT_DIR}"
     fi
 else
-    if [[ -v BUILDKITE_PLUGIN_JULIA_PERSIST_DEPOT_DIRS ]]; then
+    if [[ -n "${BUILDKITE_PLUGIN_JULIA_PERSIST_DEPOT_DIRS+x}" ]]; then
         buildkite-agent annotate --style warning "persist_depot_dirs specified with a non-isolated depot; this has no effect."
     fi
 fi
@@ -90,7 +90,7 @@ else
 fi
 
 # Look around to find `python3`; if it doesn't exist, complain
-if [[ ! -v BUILDKITE_PLUGIN_JULIA_PYTHON ]]; then
+if [[ -z "${BUILDKITE_PLUGIN_JULIA_PYTHON+x}" ]]; then
     if [[ -n "$(which python3 2>/dev/null)" ]]; then
         PYTHON="$(which python3)"
     elif [[ -n "$(which python 2>/dev/null)" ]] && [[ "$(python --version)" == "Python 3"* ]]; then
