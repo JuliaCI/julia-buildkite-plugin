@@ -11,7 +11,7 @@ steps:
       arch: "${AGENT_ARCH?}"
     plugins:
       # Install Julia v1 so we can use Sandbox
-      - QuantumSavory/julia#v1.14:
+      - QuantumSavory/julia#v1:
           version: "1"
       - staticfloat/sandbox#v2:
          rootfs_url: "https://github.com/JuliaCI/rootfs-images/releases/download/v5.44/agent_linux.i686.tar.gz"
