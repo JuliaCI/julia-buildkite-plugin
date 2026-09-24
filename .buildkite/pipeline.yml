@@ -45,3 +45,10 @@ steps:
 
       # Launch a custom URL tests
       buildkite-agent pipeline upload ".buildkite/run_tests_custom_url.yml"
+
+  - label: ":python: Unit tests"
+    agents:
+      queue: "test"
+      os: "linux"
+      arch: "x86_64"
+    command: "python3 -B -m unittest discover -s tests -v"
