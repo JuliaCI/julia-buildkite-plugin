@@ -242,19 +242,22 @@ elif [[ "$JULIA_VERSION" =~ ^(.+)-nightly$ ]]; then # for example, `version: '1.
     path="bin/$nightly_os/$nightly_larch/$release/julia-latest-$nightly_rosarch"
 else
     bucket_host="julialang-s3.julialang.org"
-    # Minor version URLs contain `-latest` in their URLs
-    postfix="-latest"
-    if [[ $JULIA_VERSION =~ ^-?[0-9]+$ ]]; then     # for example, `version: '1'` or `version: '234'`
-        release="$("${PYTHON}" $(dirname $BASH_SOURCE)/expand-major-only.py "${JULIA_VERSION}")"
-    elif [[ $JULIA_VERSION =~ ^-?[0-9]+\.[0-9]+$ ]]; then
-        release="${JULIA_VERSION}"                  # for example, `version: '123.456'`
-    elif [[ $JULIA_VERSION =~ ^-?[0-9]+(\.[0-9]+){2}$ ]]; then
-        release="${JULIA_VERSION}"                  # for example, `version: '1.2.3'`
-        # Exact versions do _not_ contain `-latest` in their URL
-        postfix=""
+    if [[ $JULIA_VERSION =~ ^([0-9]+|alpha|beta|rc)$ ]]; then
+        # for example, `version: '1'` or `version: 'rc'`, which we resolve using versions.json
+        if ! release="$("${PYTHON}" "$(dirname "${BASH_SOURCE[0]}")/resolve_version.py" "${JULIA_VERSION}")"; then
+            buildkite-agent annotate --style error "Could not resolve Julia version $JULIA_VERSION"
+            exit 1
+        fi
+    elif [[ $JULIA_VERSION =~ ^[0-9]+\.[0-9]+(\.[0-9]+(-(alpha|beta|rc)[0-9]+)?)?$ ]]; then
+        release="${JULIA_VERSION}"                  # for example, `version: '1.6'`, `'1.6.7'` or `'1.13.0-rc1'`
     else
         buildkite-agent annotate --style error "Unsupported version $JULIA_VERSION"
         exit 1
+    fi
+    # Minor versions download their latest patch release, which has `-latest` in its URL
+    postfix=""
+    if [[ $release =~ ^[0-9]+\.[0-9]+$ ]]; then
+        postfix="-latest"
     fi
     short_release="$(cut -d '.' -f 1,2 <<< "$release")"
     path="$path/$short_release/julia-$release$postfix-$rosarch"

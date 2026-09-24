@@ -29,7 +29,7 @@ steps:
 
       # Launch Linux jobs
       AGENT_OS="linux"
-      upload_pipelines x86_64  "1 1.10 nightly"
+      upload_pipelines x86_64  "1 1.10 1.13.0-rc1 nightly alpha beta rc"
       upload_pipelines i686    "1 nightly"
       upload_pipelines aarch64 "1 nightly"
 
@@ -45,3 +45,10 @@ steps:
 
       # Launch a custom URL tests
       buildkite-agent pipeline upload ".buildkite/run_tests_custom_url.yml"
+
+  - label: ":python: Unit tests"
+    agents:
+      queue: "test"
+      os: "linux"
+      arch: "x86_64"
+    command: "python3 -B -m unittest discover -s tests -v"
