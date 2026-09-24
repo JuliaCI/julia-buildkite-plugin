@@ -16,9 +16,9 @@ steps:
           version: "${JULIA_VERSION?}"
           debug_plugin: "true"
     commands: |
-      # If we asked for a nightly version, just check that we got a `1.X`:
+      # If we asked for a nightly or prerelease channel, just check that we got a `1.X`:
       CHECK_VERSION="${JULIA_VERSION?}"
-      if [[ "${JULIA_VERSION?}" == "nightly" ]]; then
+      if [[ "${JULIA_VERSION?}" =~ ^(nightly|alpha|beta|rc)$$ ]]; then
         CHECK_VERSION="1."
       fi
       [[ "$$(julia --version)" == "julia version $${CHECK_VERSION}"* ]]
