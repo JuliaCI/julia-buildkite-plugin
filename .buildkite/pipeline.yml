@@ -1,7 +1,8 @@
 steps:
   - label: ":rocket: Launch test matrix"
     agents:
-      queue: "juliaecosystem"
+      queue: "launch"
+      os: "linux"
     commands: |
       # These variables are available for templating in our child pipelines
       export JULIA_VERSION ARCH AGENT_OS AGENT_ARCH
@@ -14,16 +15,11 @@ steps:
         if [[ "$${ARCH}" == "i686" ]]; then
           AGENT_ARCH="x86_64"
         fi
-        if [[ "$${ARCH}" == "arm" ]]; then
-          AGENT_ARCH="armv7l"
-        fi
 
         # We have a special pipeline for i686
         PIPELINE=".buildkite/run_tests.yml"
         if [[ "$${ARCH}" == "i686" ]]; then
           PIPELINE=".buildkite/run_tests_$${AGENT_OS}32.yml"
-        elif [[ "$${ARCH}" == "arm" ]]; then
-          PIPELINE=".buildkite/run_tests_$${AGENT_OS}_armv7l.yml"
         fi
 
         for JULIA_VERSION in $$2; do
@@ -36,12 +32,6 @@ steps:
       upload_pipelines x86_64  "1 1.10 nightly"
       upload_pipelines i686    "1 nightly"
       upload_pipelines aarch64 "1 nightly"
-
-      # PowerPC was last supported in Julia 1.10
-      upload_pipelines powerpc64le "1.10"
-
-      # ARMv7 was last supported in Julia 1.7
-      upload_pipelines arm  "1.7"
 
       # Launch macOS jobs
       AGENT_OS="macos"
