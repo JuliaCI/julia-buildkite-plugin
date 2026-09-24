@@ -6,7 +6,7 @@ self_test_setup: &self_test_setup
 steps:
   - label: ":julia: linux x86_64 custom URL"
     agents:
-      queue: "juliaecosystem"
+      queue: "test"
       os: "linux"
       arch: "x86_64"
     plugins:

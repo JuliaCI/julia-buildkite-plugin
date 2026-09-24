@@ -6,9 +6,10 @@ self_test_setup: &self_test_setup
 steps:
   - label: ":julia: ${AGENT_OS?} ${ARCH?} ${JULIA_VERSION?}"
     agents:
-      queue: "juliaecosystem"
+      queue: "test"
       os: "${AGENT_OS?}"
       arch: "${AGENT_ARCH?}"
+      sandbox_capable: "true"
     plugins:
       # Install Julia v1 so we can use Sandbox
       - JuliaCI/julia:
