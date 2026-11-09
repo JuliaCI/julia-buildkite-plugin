@@ -312,17 +312,16 @@ url="https://$bucket_host/$path.$ext"
 # only a few hundred milliseconds, as it checks the timestamp of the file on the remote
 # server and compares it against the local one.
 #
-# The cache may be used by concurrent jobs, so nothing is ever written in place:
-# downloads and unpacks happen in `JOB_TMP` and are renamed into place once complete.
-# Installations are immutable: each one lives in a directory named after the
+# Nothing is written in place, so that a job killed halfway leaves nothing broken
+# behind: downloads and unpacks happen in `JOB_TMP` and are renamed into place once
+# complete. Installations are immutable: each one lives in a directory named after the
 # modification time of its archive, `INSTALLS/<stamp>`, and contains `INSTALL_STAMP`
-# once complete. A newer archive gets a new directory, so an installation is never
-# replaced while another job uses it.
+# once complete. A newer archive gets a new directory; superseded ones are left for the
+# runner's eviction.
 echo "Source URL: $url"
 archive_path="${CACHE_DIR}/downloads/$path.$ext"
 INSTALLS="${CACHE_DIR}/installs/$path"
 INSTALL_STAMP=".julia-buildkite-plugin-complete"
-INSTALL_USED=".julia-buildkite-plugin-last-used"
 
 # `rename_dir SRC DST`: an atomic rename that fails if DST is a non-empty directory,
 # unlike plain `mv`, which would move SRC into it. BSD `mv` lacks `-T`.
@@ -356,7 +355,7 @@ unpack() {
         buildkite-agent annotate --style error "Unhandled archive type ${archive}"
         exit 1
     fi
-    touch "${staging}/${INSTALL_USED}" "${staging}/${INSTALL_STAMP}"
+    touch "${staging}/${INSTALL_STAMP}"
     is_installed "${staging}" || return 1
 
     # An incomplete installation (e.g. its stamp survived a partial deletion) is moved
@@ -384,19 +383,7 @@ elif ! unpack "${archive_path}"; then
     unpack "${new_archive}"
     mv -f "${new_archive}" "${archive_path}"
 fi
-touch "${unpack_dest}/${INSTALL_USED}"
 echo "Installed location: ${unpack_dest}"
-
-# Installations superseded by a newer archive of the same version (e.g. nightlies) are
-# removed once no job has started using them for a day. This bounds what a frequently
-# updated version accumulates; it is not size-based pruning.
-for old in "${INSTALLS}"/*; do
-    [[ -d "${old}" && "${old}" != "${unpack_dest}" ]] || continue
-    if [[ -n "$(find "${old}/${INSTALL_USED}" -mmin +1440 2>/dev/null)" ]]; then
-        rename_dir "${old}" "$(mktemp -d "${JOB_TMP}/superseded.XXXXXXXX")/install" \
-            2>/dev/null || true
-    fi
-done
 
 # Show that julia is installed and print out the version info
 echo "--- :julia: Installation Successful"

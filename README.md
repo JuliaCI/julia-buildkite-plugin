@@ -67,7 +67,7 @@ on a laptop) is the *runner*. The plugin and the runner split the work as
 follows:
 
 * **The runner provides the cache.** It points `XDG_CACHE_HOME` at a writable
-  directory for the job, and chooses which jobs share it (e.g. per agent slot,
+  directory for the job, and chooses which jobs reuse it (e.g. per agent slot,
   pipeline and trust level). Other tools that follow the XDG convention end up
   in the same place.
 * **The plugin writes only to its own subdirectory**,
@@ -76,18 +76,18 @@ follows:
 * **The runner owns eviction.** It deletes caches as a whole when it needs
   space or when they get too old, but never while a job is using them. The
   plugin copes with its directory disappearing between jobs.
-* **Downloads and installations may be shared by concurrent jobs.** They are
-  written in `tmp/` and renamed into place when complete. An installation is
-  never modified once in place: a newer archive of the same version (e.g. a
-  nightly) is unpacked next to it, and an incomplete one is detected and
-  replaced. The plugin removes only its own leftovers: `tmp/` entries older
-  than a day, and installations superseded by a newer archive that no job has
-  started using for a day.
-* **A depot is used by one job at a time.** Each job resets the parts of
-  `depots/<pipeline id>/` that are not in `persist_depot_dirs` (registries,
-  environments, ...) and stale precompilation pidfiles, which would break a
-  concurrent job of the same pipeline. Runners that run jobs concurrently must
-  give them separate cache directories (e.g. one per agent slot).
+* **A cache directory is used by one job at a time.** Each job resets the
+  parts of `depots/<pipeline id>/` that are not in `persist_depot_dirs`
+  (registries, environments, ...) and stale precompilation pidfiles, which
+  would break a concurrent job. Runners that run jobs concurrently give them
+  separate cache directories (e.g. one per agent slot and pipeline).
+* **Nothing is left half-written.** Downloads and unpacks happen in `tmp/` and
+  are renamed into place when complete, so a job killed halfway (or a cache
+  deleted between jobs) leaves nothing broken behind. An installation is never
+  modified once in place: a newer archive of the same version (e.g. a nightly)
+  is unpacked next to it, and an incomplete one is detected and replaced. The
+  plugin removes only its own leftovers in `tmp/` (after a day); superseded
+  installations stay until the runner evicts the cache.
 * **Read-only stores are found through `JULIA_DEPOT_PATH`.** When the depot is
   isolated, the plugin sets `JULIA_DEPOT_PATH` to its own depot followed by the
   value it inherited, e.g. `/cache/julia-buildkite-plugin/depots/<id>:/store:`.
