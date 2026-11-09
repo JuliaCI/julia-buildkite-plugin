@@ -5,6 +5,10 @@ self_test_setup: &self_test_setup
   post-checkout: |
     mkdir -p .buildkite/plugins/julia
     cp -Ra hooks plugin.yml README.md .buildkite/plugins/julia/
+  # Inside the checkout, as sandboxed macOS jobs cannot write to /tmp.
+  pre-command: |
+    export XDG_CACHE_HOME="$${BUILDKITE_BUILD_CHECKOUT_PATH}/.jbp-xdg"
+    export JULIA_DEPOT_PATH="$${BUILDKITE_BUILD_CHECKOUT_PATH}/.jbp-store"
 
 steps:
   - label: ":julia: cache contract (${AGENT_OS?})"
@@ -12,9 +16,6 @@ steps:
       queue: "test"
       os: "${AGENT_OS?}"
       arch: "x86_64"
-    env:
-      XDG_CACHE_HOME: "/tmp/jbp-contract"
-      JULIA_DEPOT_PATH: "/tmp/jbp-store"
     plugins:
       - staticfloat/metahook#sf/windows_backslashes:
           <<: *self_test_setup
@@ -26,9 +27,10 @@ steps:
           debug_plugin: "true"
     commands: |
       set -x
-      CACHE="/tmp/jbp-contract/julia-buildkite-plugin"
-      [[ "$${JULIA_DEPOT_PATH}" == "$${CACHE}/depots/$${BUILDKITE_PIPELINE_ID}:/tmp/jbp-store:" ]]
+      CACHE="$${BUILDKITE_BUILD_CHECKOUT_PATH}/.jbp-xdg/julia-buildkite-plugin"
+      STORE="$${BUILDKITE_BUILD_CHECKOUT_PATH}/.jbp-store"
+      [[ "$${JULIA_DEPOT_PATH}" == "$${CACHE}/depots/$${BUILDKITE_PIPELINE_ID}:$${STORE}:" ]]
       [[ "$$(command -v julia)" == "$${CACHE}/installs/"* ]]
       [[ -f "$$(dirname "$$(command -v julia)")/../.julia-buildkite-plugin-complete" ]]
-      julia -e 'DEPOT_PATH[2] == "/tmp/jbp-store" || error(DEPOT_PATH)'
+      julia -e 'DEPOT_PATH[2] == ARGS[1] || error(DEPOT_PATH)' "$${STORE}"
       julia -e 'any(d -> isdir(joinpath(d, "stdlib")) || isdir(joinpath(d, "base")), DEPOT_PATH[3:end]) || error(DEPOT_PATH)'
