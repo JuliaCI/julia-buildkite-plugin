@@ -12,6 +12,11 @@ configuration:
       type: boolean
     persist_depot_dirs:
       type: string
+    cache_dir:
+      type: string
+    update_registry:
+      type: boolean
+    # Accepted but ignored since v2, with a warning: the runner owns cache eviction.
     compiled_size_limit:
       type: string
     artifacts_size_limit:
@@ -19,6 +24,8 @@ configuration:
     depot_size_limit:
       type: string
     depot_age_limit:
+      type: string
+    pipeline_age_limit:
       type: string
     python:
       type: string

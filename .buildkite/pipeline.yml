@@ -46,6 +46,11 @@ steps:
       # Launch a custom URL tests
       buildkite-agent pipeline upload ".buildkite/run_tests_custom_url.yml"
 
+      # Launch the cache contract tests
+      for AGENT_OS in linux macos; do
+        buildkite-agent pipeline upload ".buildkite/run_tests_contract.yml"
+      done
+
   - label: ":python: Unit tests"
     agents:
       queue: "test"
