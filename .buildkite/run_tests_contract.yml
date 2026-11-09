@@ -28,7 +28,7 @@ steps:
       set -x
       CACHE="/tmp/jbp-contract/julia-buildkite-plugin"
       [[ "$${JULIA_DEPOT_PATH}" == "$${CACHE}/depots/$${BUILDKITE_PIPELINE_ID}:/tmp/jbp-store:" ]]
-      [[ "$$(command -v julia)" == "$${CACHE}/julia_installs/"* ]]
-      [[ -f "$$(dirname "$$(command -v julia)")/../.julia-buildkite-plugin-archive-mtime" ]]
+      [[ "$$(command -v julia)" == "$${CACHE}/installs/"* ]]
+      [[ -f "$$(dirname "$$(command -v julia)")/../.julia-buildkite-plugin-complete" ]]
       julia -e 'DEPOT_PATH[2] == "/tmp/jbp-store" || error(DEPOT_PATH)'
       julia -e 'any(d -> isdir(joinpath(d, "stdlib")) || isdir(joinpath(d, "base")), DEPOT_PATH[3:end]) || error(DEPOT_PATH)'

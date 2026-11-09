@@ -34,7 +34,7 @@ done
 # were killed are removed once they are clearly not in use anymore.
 TMP_ROOT="${CACHE_DIR}/tmp"
 mkdir -p "${TMP_ROOT}"
-find "${TMP_ROOT}" -mindepth 1 -maxdepth 1 -mmin +360 \
+find "${TMP_ROOT}" -mindepth 1 -maxdepth 1 -mmin +1440 \
     -exec chmod -R u+w {} + -exec rm -rf {} + 2>/dev/null || true
 JOB_TMP="$(mktemp -d "${TMP_ROOT}/job.XXXXXXXX")"
 
@@ -312,16 +312,17 @@ url="https://$bucket_host/$path.$ext"
 # only a few hundred milliseconds, as it checks the timestamp of the file on the remote
 # server and compares it against the local one.
 #
-# The cache may be used by concurrent jobs, and may be deleted at any time, so nothing is
-# ever written in place: downloads and unpacks happen in `JOB_TMP` and are renamed into
-# place once complete. An installation records the modification time of the archive it
-# was unpacked from in `INSTALL_STAMP`; one without a matching stamp is incomplete or
-# outdated, and is replaced.
+# The cache may be used by concurrent jobs, so nothing is ever written in place:
+# downloads and unpacks happen in `JOB_TMP` and are renamed into place once complete.
+# Installations are immutable: each one lives in a directory named after the
+# modification time of its archive, `INSTALLS/<stamp>`, and contains `INSTALL_STAMP`
+# once complete. A newer archive gets a new directory, so an installation is never
+# replaced while another job uses it.
 echo "Source URL: $url"
 archive_path="${CACHE_DIR}/downloads/$path.$ext"
-unpack_dest="${CACHE_DIR}/julia_installs/$path"
-INSTALL_STAMP=".julia-buildkite-plugin-archive-mtime"
-mkdir -p "$(dirname "${archive_path}")" "$(dirname "${unpack_dest}")"
+INSTALLS="${CACHE_DIR}/installs/$path"
+INSTALL_STAMP=".julia-buildkite-plugin-complete"
+INSTALL_USED=".julia-buildkite-plugin-last-used"
 
 # `rename_dir SRC DST`: an atomic rename that fails if DST is a non-empty directory,
 # unlike plain `mv`, which would move SRC into it. BSD `mv` lacks `-T`.
@@ -331,21 +332,20 @@ else
     rename_dir() { "${PYTHON}" -c 'import os, sys; os.rename(sys.argv[1], sys.argv[2])' "$1" "$2"; }
 fi
 
-# `is_installed STAMP`: whether `unpack_dest` is complete and unpacked from an archive
-# with modification time STAMP.
+# `is_installed DIR`: whether DIR is a complete installation.
 is_installed() {
-    [[ -f "${unpack_dest}/${INSTALL_STAMP}" && \
-       "$(cat "${unpack_dest}/${INSTALL_STAMP}" 2>/dev/null)" == "$1" ]]
+    [[ -f "$1/${INSTALL_STAMP}" ]] && [[ -e "$1/bin/julia" || -e "$1/bin/julia.exe" ]]
 }
 
-# `unpack ARCHIVE`: unpack into `unpack_dest`, unless it is already up to date.
+# `unpack ARCHIVE`: make sure `INSTALLS/<stamp of ARCHIVE>` is installed, and set
+# `unpack_dest` to it.
 unpack() {
-    local archive="$1" stamp
-    stamp="$(stat_mtime "${archive}")"
-    is_installed "${stamp}" && return 0
+    local archive="$1" staging
+    unpack_dest="${INSTALLS}/$(stat_mtime "${archive}")"
+    is_installed "${unpack_dest}" && return 0
 
     echo "New or updated installation detected, unpacking!"
-    local staging; staging="$(mktemp -d "${JOB_TMP}/install.XXXXXXXX")"
+    staging="$(mktemp -d "${JOB_TMP}/install.XXXXXXXX")"
     if [[ "${archive}" == *.tar.gz ]]; then
         tar -xof "${archive}" --strip-components=1 -C "${staging}" || return 1
     elif [[ "${archive}" == *.zip ]]; then
@@ -356,24 +356,21 @@ unpack() {
         buildkite-agent annotate --style error "Unhandled archive type ${archive}"
         exit 1
     fi
-    [[ -e "${staging}/bin/julia" || -e "${staging}/bin/julia.exe" ]] || return 1
-    echo "${stamp}" > "${staging}/${INSTALL_STAMP}"
+    touch "${staging}/${INSTALL_USED}" "${staging}/${INSTALL_STAMP}"
+    is_installed "${staging}" || return 1
 
-    # A concurrent job may have installed the same archive in the meantime; replacing it
-    # would break that job.
-    is_installed "${stamp}" && return 0
-
-    # Move an outdated or incomplete installation aside first. A concurrent job that is
-    # still using it may break when it is deleted, as it would have before v2.
-    if [[ -e "${unpack_dest}" ]]; then
-        rename_dir "${unpack_dest}" "${JOB_TMP}/old-install" 2>/dev/null || true
+    # An incomplete installation (e.g. its stamp survived a partial deletion) is moved
+    # aside. If a concurrent job publishes the same archive first, its copy is used.
+    if [[ -e "${unpack_dest}" ]] && ! is_installed "${unpack_dest}"; then
+        rename_dir "${unpack_dest}" "$(mktemp -d "${JOB_TMP}/broken.XXXXXXXX")/install" \
+            2>/dev/null || true
     fi
-    if ! rename_dir "${staging}" "${unpack_dest}" 2>/dev/null; then
-        # A concurrent job got there first; its installation is just as good.
-        [[ -f "${unpack_dest}/${INSTALL_STAMP}" ]] || return 1
-    fi
+    mkdir -p "${INSTALLS}"
+    rename_dir "${staging}" "${unpack_dest}" 2>/dev/null || true
+    is_installed "${unpack_dest}"
 }
 
+mkdir -p "$(dirname "${archive_path}")"
 new_archive="${JOB_TMP}/archive.${ext}"
 download "${url}" "${archive_path}" "${new_archive}"
 if [[ -s "${new_archive}" ]]; then
@@ -387,7 +384,19 @@ elif ! unpack "${archive_path}"; then
     unpack "${new_archive}"
     mv -f "${new_archive}" "${archive_path}"
 fi
+touch "${unpack_dest}/${INSTALL_USED}"
 echo "Installed location: ${unpack_dest}"
+
+# Installations superseded by a newer archive of the same version (e.g. nightlies) are
+# removed once no job has started using them for a day. This bounds what a frequently
+# updated version accumulates; it is not size-based pruning.
+for old in "${INSTALLS}"/*; do
+    [[ -d "${old}" && "${old}" != "${unpack_dest}" ]] || continue
+    if [[ -n "$(find "${old}/${INSTALL_USED}" -mmin +1440 2>/dev/null)" ]]; then
+        rename_dir "${old}" "$(mktemp -d "${JOB_TMP}/superseded.XXXXXXXX")/install" \
+            2>/dev/null || true
+    fi
+done
 
 # Show that julia is installed and print out the version info
 echo "--- :julia: Installation Successful"
@@ -411,6 +420,11 @@ if [[ "${BUILDKITE_PLUGIN_JULIA_UPDATE_REGISTRY:-true}" == "true" ]]; then
       end'
 fi
 
+# Done with our scratch space. This must happen before `PATH` is converted for Windows,
+# after which bash can no longer find `chmod` and `rm`.
+chmod -R u+w "${JOB_TMP}" 2>/dev/null || true
+rm -rf "${JOB_TMP}"
+
 if ! is_windows; then
     # Export `PATH` such that this `julia` is the first one other plugins find
     export PATH=${unpack_dest}/bin:"$PATH"
@@ -427,8 +441,5 @@ fi
 
 # The pre-exit hook removes coverage files from this installation.
 export JULIA_BUILDKITE_PLUGIN_INSTALL_DIR="${unpack_dest}"
-
-chmod -R u+w "${JOB_TMP}" 2>/dev/null || true
-rm -rf "${JOB_TMP}"
 
 export BUILDKITE_PLUGIN_JULIA_SUCCESS="true"

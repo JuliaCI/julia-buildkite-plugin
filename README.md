@@ -56,7 +56,7 @@ The plugin keeps everything it downloads or creates in one directory:
    set to an absolute path;
 3. otherwise `$HOME/.cache/julia-buildkite-plugin`.
 
-Inside it, `downloads/` holds the Julia archives, `julia_installs/` the unpacked
+Inside it, `downloads/` holds the Julia archives, `installs/` the unpacked
 installations, `depots/<pipeline id>/` the isolated depots, and `tmp/` work in
 progress. Keep the directory between jobs to make them much faster.
 
@@ -74,11 +74,20 @@ follows:
   `<cache>/julia-buildkite-plugin/`, and never limits its size: it does not
   measure it, trim artifacts or compilation caches, or remove old depots.
 * **The runner owns eviction.** It deletes caches as a whole when it needs
-  space or when they get too old. The plugin tolerates its directory
-  disappearing between jobs, and other jobs using it at the same time:
-  downloads and unpacks happen in `tmp/` and are renamed into place when
-  complete, and an incomplete or outdated installation is detected and
-  replaced. The plugin removes only its own leftovers from `tmp/`.
+  space or when they get too old, but never while a job is using them. The
+  plugin copes with its directory disappearing between jobs.
+* **Downloads and installations may be shared by concurrent jobs.** They are
+  written in `tmp/` and renamed into place when complete. An installation is
+  never modified once in place: a newer archive of the same version (e.g. a
+  nightly) is unpacked next to it, and an incomplete one is detected and
+  replaced. The plugin removes only its own leftovers: `tmp/` entries older
+  than a day, and installations superseded by a newer archive that no job has
+  started using for a day.
+* **A depot is used by one job at a time.** Each job resets the parts of
+  `depots/<pipeline id>/` that are not in `persist_depot_dirs` (registries,
+  environments, ...) and stale precompilation pidfiles, which would break a
+  concurrent job of the same pipeline. Runners that run jobs concurrently must
+  give them separate cache directories (e.g. one per agent slot).
 * **Read-only stores are found through `JULIA_DEPOT_PATH`.** When the depot is
   isolated, the plugin sets `JULIA_DEPOT_PATH` to its own depot followed by the
   value it inherited, e.g. `/cache/julia-buildkite-plugin/depots/<id>:/store:`.
@@ -112,5 +121,7 @@ the cache directory (see above); otherwise the directory grows without bound.
   of being replaced. If your agents export a `JULIA_DEPOT_PATH` that jobs
   should not see, unset it in the agent environment.
 * On Windows, `JULIA_DEPOT_PATH` now contains a Windows path (`C:\...`).
-* Installations are now marked complete; the first v2 job unpacks each cached
-  Julia version once more.
+* Installations moved from `julia_installs/` to `installs/<path>/<archive
+  mtime>/`, so the first v2 job unpacks each cached Julia version once more.
+  v1's `julia_installs/` is no longer used; delete it, or let the runner's
+  eviction take care of it.
