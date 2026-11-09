@@ -8,7 +8,7 @@ This plugin provides a convenient way to download and install [Julia](https://ju
 steps:
   - label: ":julia: Run tests on 1.6"
     plugins:
-      - JuliaCI/julia#v2:
+      - JuliaCI/julia#v1:
           version: 1.6
       - JuliaCI/julia-test#v1:
 ```
@@ -43,7 +43,7 @@ steps:
   update the package registry.
 
 The options `compiled_size_limit`, `artifacts_size_limit`, `depot_size_limit`,
-`depot_age_limit` and `pipeline_age_limit` were removed in v2. They are still
+`depot_age_limit` and `pipeline_age_limit` were removed in v1.15. They are still
 accepted, but only produce a warning.
 
 ## Cache directory
@@ -96,32 +96,33 @@ follows:
   read-only artifact store by setting `JULIA_DEPOT_PATH=/store`. The result
   always contains an empty entry (added at the end if the inherited value has
   none), which Julia expands to the depots bundled with its installation.
-  Without an inherited value this is `<depot>:`, as before v2. On Windows the
+  Without an inherited value this is `<depot>:`, as before v1.15. On Windows the
   separator is `;`.
 
 A runner that does not evict caches, such as an agent with a persistent
 `$HOME`, must clean the cache directory itself, e.g. with a cron job that
-removes it when the disk fills up, or stay on v1 of this plugin, which prunes
+removes it when the disk fills up, or pin v1.14 of this plugin, which prunes
 its depots after every job.
 
-## Migrating from v1 to v2
+## Since v1.15: runner-owned eviction
 
-v2 removes all size management from the plugin. Before moving a pipeline to
-`JuliaCI/julia#v2`, make sure the agents it runs on have a runner that evicts
-the cache directory (see above); otherwise the directory grows without bound.
+Up to v1.14 the plugin limited the size of its cache after every job: it ran
+`du` on the depot, trimmed the `compiled` and `artifacts` directories, wiped
+depots over a size limit and removed depots of pipelines that had not run for
+30 days. Since v1.15 it does none of that, and the options that configured it
+(`compiled_size_limit`, `artifacts_size_limit`, `depot_size_limit`,
+`depot_age_limit`, `pipeline_age_limit`) are ignored with a warning. The
+runner must evict the cache directory instead, e.g. sandboxed-buildkite-agent's
+cache retention, or a cron job on hosts without it.
 
-* The pre-exit hook no longer runs `du` on the depot, trims the `compiled` and
-  `artifacts` directories, wipes depots that are too large, or removes depots
-  of pipelines that have not run for 30 days. Their options are ignored with a
-  warning.
-* The cache directory now honours `XDG_CACHE_HOME`. An explicit `cache_dir`
-  (or `BUILDKITE_PLUGIN_JULIA_CACHE_DIR`) still takes precedence, so runners
-  that set it keep working; new runners should set `XDG_CACHE_HOME` instead.
-* An inherited `JULIA_DEPOT_PATH` is now kept after the isolated depot instead
-  of being replaced. If your agents export a `JULIA_DEPOT_PATH` that jobs
-  should not see, unset it in the agent environment.
-* On Windows, `JULIA_DEPOT_PATH` now contains a Windows path (`C:\...`).
+Other changes in v1.15:
+
+* The cache directory honours `XDG_CACHE_HOME`. An explicit `cache_dir` (or
+  `BUILDKITE_PLUGIN_JULIA_CACHE_DIR`) still takes precedence.
+* An inherited `JULIA_DEPOT_PATH` is kept after the isolated depot instead of
+  being replaced. Unset it in the agent environment if jobs should not see it.
+* On Windows, `JULIA_DEPOT_PATH` contains a Windows path (`C:\...`).
 * Installations moved from `julia_installs/` to `installs/<path>/<archive
-  mtime>/`, so the first v2 job unpacks each cached Julia version once more.
-  v1's `julia_installs/` is no longer used; delete it, or let the runner's
+  mtime>/`, so the first job unpacks each cached Julia version once more. The
+  old `julia_installs/` is no longer used; delete it, or let the runner's
   eviction take care of it.

@@ -19,11 +19,11 @@ fi
 CACHE_DIR="$(jbp_cache_dir)"
 echo "Cache directory: ${CACHE_DIR}"
 
-# Options that configured the size-based pruning removed in v2.
+# Options that configured the size-based pruning removed in v1.15.
 for option in compiled_size_limit artifacts_size_limit depot_size_limit depot_age_limit pipeline_age_limit; do
     var="BUILDKITE_PLUGIN_JULIA_$(tr '[:lower:]' '[:upper:]' <<< "${option}")"
     if [[ -n "${!var+x}" ]]; then
-        msg="The julia plugin option \`${option}\` has no effect since v2: the plugin no longer prunes its cache, the agent's runner does. See the plugin's README."
+        msg="The julia plugin option \`${option}\` has no effect since v1.15: the plugin no longer prunes its cache, the agent's runner does. See the plugin's README."
         echo "WARNING: ${msg}"
         buildkite-agent annotate --style warning --context "julia-plugin-${option}" "${msg}" || true
     fi
@@ -376,7 +376,7 @@ if [[ -s "${new_archive}" ]]; then
     unpack "${new_archive}"
     mv -f "${new_archive}" "${archive_path}"
 elif ! unpack "${archive_path}"; then
-    # The cached archive may be truncated (v1 downloaded in place); fetch it again.
+    # The cached archive may be truncated (v1.14 and older downloaded in place); fetch it again.
     echo "Unpacking the cached archive failed, downloading it again"
     rm -f "${archive_path}"
     download "${url}" "${archive_path}" "${new_archive}"

@@ -54,7 +54,7 @@ class TestCacheDir(unittest.TestCase):
 
 class TestDepotPath(unittest.TestCase):
     def test_nothing_inherited(self):
-        # The trailing empty entry adds Julia's bundled depots, as before v2.
+        # The trailing empty entry adds Julia's bundled depots, as before v1.15.
         self.assertEqual(depot_path(":", "/c/d", ""), "/c/d:")
         self.assertEqual(depot_path(";", "C:\\c\\d", ""), "C:\\c\\d;")
 

@@ -16,7 +16,7 @@ configuration:
       type: string
     update_registry:
       type: boolean
-    # Accepted but ignored since v2, with a warning: the runner owns cache eviction.
+    # Accepted but ignored since v1.15, with a warning: the runner owns cache eviction.
     compiled_size_limit:
       type: string
     artifacts_size_limit:
