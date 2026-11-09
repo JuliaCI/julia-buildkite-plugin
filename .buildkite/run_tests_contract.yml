@@ -1,0 +1,30 @@
+# The cache contract: `XDG_CACHE_HOME` selects the cache directory, and an inherited
+# `JULIA_DEPOT_PATH` is kept after the plugin's depot. The hooks are run from the
+# command, as the agent offers no way to set a variable from the job's own paths
+# before a plugin runs (and sandboxed macOS jobs cannot write to /tmp).
+steps:
+  - label: ":julia: cache contract (${AGENT_OS?})"
+    agents:
+      queue: "test"
+      os: "${AGENT_OS?}"
+      arch: "x86_64"
+    commands: |
+      set -euo pipefail
+      unset BUILDKITE_PLUGIN_JULIA_CACHE_DIR
+      export XDG_CACHE_HOME="$${PWD}/.jbp-xdg"
+      export JULIA_DEPOT_PATH="$${PWD}/.jbp-store"
+      export BUILDKITE_PLUGIN_JULIA_VERSION=1
+      export BUILDKITE_PLUGIN_JULIA_UPDATE_REGISTRY=false
+      export BUILDKITE_PLUGIN_JULIA_ARTIFACTS_SIZE_LIMIT=1
+      CACHE="$${XDG_CACHE_HOME}/julia-buildkite-plugin"
+      STORE="$${JULIA_DEPOT_PATH}"
+
+      source hooks/pre-command
+      set -x
+      [[ "$${JULIA_DEPOT_PATH}" == "$${CACHE}/depots/$${BUILDKITE_PIPELINE_ID}:$${STORE}:" ]]
+      [[ "$$(command -v julia)" == "$${CACHE}/installs/"* ]]
+      [[ -f "$$(dirname "$$(command -v julia)")/../.julia-buildkite-plugin-complete" ]]
+      julia -e 'DEPOT_PATH[2] == ARGS[1] || error(DEPOT_PATH)' "$${STORE}"
+      julia -e 'any(d -> isdir(joinpath(d, "stdlib")) || isdir(joinpath(d, "base")), DEPOT_PATH[3:end]) || error(DEPOT_PATH)'
+      [[ -z "$$(ls "$${CACHE}/tmp")" ]]
+      source hooks/pre-exit

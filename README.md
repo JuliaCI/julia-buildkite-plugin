@@ -32,22 +32,97 @@ steps:
 
 * `arch`: a string specifying the architecture to download Julia for. Defaults
   to `uname -m`.
-* `cache_dir`: a string specifying a location for maintaining a cache of Julia
-  installations, depots, etc. Defaults to
-  `${HOME}/.cache/julia-buildkite-plugin`. Persist this directory on your agents
-  to speed up subsequent builds.
-* `compiled_size_limit`: a string specifying the maximum size of the compilation
-  cache, in bytes. Defaults to `1073741824` bytes, i.e. 1 GiB.
-* `artifacts_size_limit`: a string specifying the maximum size of the artifacts
-  store, in bytes. Defaults to `10737418240` bytes, i.e. 10 GiB.
-* `depot_size_limit`: a string specifying the maximum size of the entire depot,
-  in bytes. Defaults to 10 GiB over the previous two limits, i.e., 21 GiB.
-* `pipeline_age_limit`: a string specifying a period in seconds after which a
-  depot will be considered stale and removed. Defaults to `2592000` seconds,
-  i.e. 30 days.
+* `cache_dir`: a string specifying the directory the plugin keeps Julia
+  installations, downloads and depots in. Overrides the default described in
+  [Cache directory](#cache-directory).
 * `debug_plugin`: a boolean, which defaults to `false`, severely increasing the
   verbosity of the plugin for debugging purposes.
 * `python`: a string specifying the path to a Python 3 distribution. The plugin
   will try to autodetect the location of a Python 3 installation by default.
 * `update_registry`: a boolean, which defaults to `true`, indicating whether to
   update the package registry.
+
+The options `compiled_size_limit`, `artifacts_size_limit`, `depot_size_limit`,
+`depot_age_limit` and `pipeline_age_limit` were removed in v1.15. They are still
+accepted, but only produce a warning.
+
+## Cache directory
+
+The plugin keeps everything it downloads or creates in one directory:
+
+1. the `cache_dir` option, if set (also when it comes from the
+   `BUILDKITE_PLUGIN_JULIA_CACHE_DIR` environment variable);
+2. otherwise `$XDG_CACHE_HOME/julia-buildkite-plugin`, if `XDG_CACHE_HOME` is
+   set to an absolute path;
+3. otherwise `$HOME/.cache/julia-buildkite-plugin`.
+
+Inside it, `downloads/` holds the Julia archives, `installs/` the unpacked
+installations, `depots/<pipeline id>/` the isolated depots, and `tmp/` work in
+progress. Keep the directory between jobs to make them much faster.
+
+### The contract with the runner
+
+Whatever starts the Buildkite agent (a job scheduler, agent hooks, or a person
+on a laptop) is the *runner*. The plugin and the runner split the work as
+follows:
+
+* **The runner provides the cache.** It points `XDG_CACHE_HOME` at a writable
+  directory for the job, and chooses which jobs reuse it (e.g. per agent slot,
+  pipeline and trust level). Other tools that follow the XDG convention end up
+  in the same place.
+* **The plugin writes only to its own subdirectory**,
+  `<cache>/julia-buildkite-plugin/`, and never limits its size: it does not
+  measure it, trim artifacts or compilation caches, or remove old depots.
+* **The runner owns eviction.** It deletes caches as a whole when it needs
+  space or when they get too old, but never while a job is using them. The
+  plugin copes with its directory disappearing between jobs.
+* **A cache directory is used by one job at a time.** Each job resets the
+  parts of `depots/<pipeline id>/` that are not in `persist_depot_dirs`
+  (registries, environments, ...) and stale precompilation pidfiles, which
+  would break a concurrent job. Runners that run jobs concurrently give them
+  separate cache directories (e.g. one per agent slot and pipeline).
+* **Nothing is left half-written.** Downloads and unpacks happen in `tmp/` and
+  are renamed into place when complete, so a job killed halfway (or a cache
+  deleted between jobs) leaves nothing broken behind. An installation is never
+  modified once in place: a newer archive of the same version (e.g. a nightly)
+  is unpacked next to it, and an incomplete one is detected and replaced. The
+  plugin removes only its own leftovers in `tmp/` (after a day); superseded
+  installations stay until the runner evicts the cache.
+* **Read-only stores are found through `JULIA_DEPOT_PATH`.** When the depot is
+  isolated, the plugin sets `JULIA_DEPOT_PATH` to its own depot followed by the
+  value it inherited, e.g. `/cache/julia-buildkite-plugin/depots/<id>:/store:`.
+  Julia and Pkg write to the first depot only, and find artifacts, packages and
+  compilation caches in the later ones, so a runner can offer a shared,
+  read-only artifact store by setting `JULIA_DEPOT_PATH=/store`. The result
+  always contains an empty entry (added at the end if the inherited value has
+  none), which Julia expands to the depots bundled with its installation.
+  Without an inherited value this is `<depot>:`, as before v1.15. On Windows the
+  separator is `;`.
+
+A runner that does not evict caches, such as an agent with a persistent
+`$HOME`, must clean the cache directory itself, e.g. with a cron job that
+removes it when the disk fills up, or pin v1.14 of this plugin, which prunes
+its depots after every job.
+
+## Since v1.15: runner-owned eviction
+
+Up to v1.14 the plugin limited the size of its cache after every job: it ran
+`du` on the depot, trimmed the `compiled` and `artifacts` directories, wiped
+depots over a size limit and removed depots of pipelines that had not run for
+30 days. Since v1.15 it does none of that, and the options that configured it
+(`compiled_size_limit`, `artifacts_size_limit`, `depot_size_limit`,
+`depot_age_limit`, `pipeline_age_limit`) are ignored with a warning. The
+runner must evict the cache directory instead, e.g. sandboxed-buildkite-agent's
+cache retention, or a cron job on hosts without it.
+
+Other changes in v1.15:
+
+* The cache directory honours `XDG_CACHE_HOME`. An explicit `cache_dir` (or
+  `BUILDKITE_PLUGIN_JULIA_CACHE_DIR`) still takes precedence.
+* An inherited `JULIA_DEPOT_PATH` is kept after the isolated depot instead of
+  being replaced. Unset it in the agent environment if jobs should not see it.
+* On Windows, `JULIA_DEPOT_PATH` contains a Windows path (`C:\...`).
+* Installations moved from `julia_installs/` to `installs/<path>/<archive
+  mtime>/`, so the first job unpacks each cached Julia version once more. The
+  old `julia_installs/` is no longer used; delete it, or let the runner's
+  eviction take care of it.
