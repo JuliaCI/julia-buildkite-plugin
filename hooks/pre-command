@@ -14,8 +14,8 @@ if [[ "${BUILDKITE_PLUGIN_JULIA_DEBUG_PLUGIN:-false}" == "true" ]]; then
 fi
 
 # Where Julia is downloaded and unpacked to, and where the depots live. The runner owns
-# this directory: it may delete it at any time and share it between concurrent jobs, and
-# it is responsible for keeping its size in check. See the README.
+# this directory: it keeps its size in check by deleting it between jobs, and gives
+# concurrent jobs separate directories. See the README.
 CACHE_DIR="$(jbp_cache_dir)"
 echo "Cache directory: ${CACHE_DIR}"
 
